@@ -3,7 +3,6 @@ import { dishContentKey, dishReducer, type DishState } from '../dish/state';
 import { useCatalogCommits } from '../dish/useCatalogCommits';
 import { getRecipe, RecipeNotFoundError, recipeToState, updateRecipe } from '../storage/recipes';
 import { DishSummary } from './DishSummary';
-import { HeaderActions } from './HeaderActions';
 import { IngredientsEditor } from './IngredientsEditor';
 import { Modal } from './Modal';
 import type { UndoEntry } from './UndoToast';
@@ -126,23 +125,25 @@ function RecipeForm({ initial, offerUndo, dismissUndo, onDone }: RecipeFormProps
   return (
     <section aria-labelledby="recipe-edit-title" className="recipe-editor">
       <div className="page-header">
-        <h1 className="page-title" tabIndex={-1} id="recipe-edit-title" ref={titleRef}>
-          Правка рецепта
-        </h1>
+        <div className="page-heading">
+          <h1 className="page-title" tabIndex={-1} id="recipe-edit-title" ref={titleRef}>
+            Правка рецепта
+          </h1>
+        </div>
+        <div className="page-actions">
+          <button type="button" className="button" onClick={cancel}>
+            Отмена
+          </button>
+          <button
+            type="button"
+            className="button button-primary"
+            disabled={saving}
+            onClick={() => void save()}
+          >
+            Сохранить
+          </button>
+        </div>
       </div>
-      <HeaderActions>
-        <button type="button" className="button" onClick={cancel}>
-          Отмена
-        </button>
-        <button
-          type="button"
-          className="button button-primary"
-          disabled={saving}
-          onClick={() => void save()}
-        >
-          Сохранить
-        </button>
-      </HeaderActions>
       <p className="hint">
         Измените вес, замените или добавьте ингредиенты. Калорийность и БЖУ пересчитываются сразу.
         Рецепт меняется только после нажатия «Сохранить».

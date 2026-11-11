@@ -20,7 +20,6 @@ import {
 import { db } from '../storage/db';
 import { SOURCE_LABELS, type Product, type ProductSource } from '../storage/schema';
 import { AddProductDialog } from './AddProductDialog';
-import { HeaderActions } from './HeaderActions';
 import { PlusIcon, SearchIcon } from './icons';
 import { Modal } from './Modal';
 import { ProductForm } from './ProductForm';
@@ -250,25 +249,27 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
 
   return (
     <section aria-labelledby="mod-title" className="catalog">
-      <HeaderActions>
-        <button
-          type="button"
-          className="button button-primary"
-          onClick={openAdd}
-          aria-label="Добавить продукт"
-        >
-          <PlusIcon />
-          Продукт
-        </button>
-      </HeaderActions>
       <div className="page-header">
-        <h1 className="page-title" tabIndex={-1} id="mod-title">
-          Справочник
-        </h1>
-        <p className="page-subtitle">
-          Значения — на 100 г сырого продукта. Правки не меняют сохранённые блюда: блюдо хранит свою
-          копию значений.
-        </p>
+        <div className="page-heading">
+          <h1 className="page-title" tabIndex={-1} id="mod-title">
+            Справочник
+          </h1>
+          <p className="page-subtitle">
+            Значения — на 100 г сырого продукта. Правки не меняют сохранённые блюда: блюдо хранит
+            свою копию значений.
+          </p>
+        </div>
+        <div className="page-actions">
+          <button
+            type="button"
+            className="button button-primary"
+            onClick={openAdd}
+            aria-label="Добавить продукт"
+          >
+            <PlusIcon />
+            Продукт
+          </button>
+        </div>
       </div>
 
       <div className="filters">

@@ -1,9 +1,21 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react';
 
 export interface ModalProps {
   title: string;
   onClose: () => void;
   children: ReactNode;
+}
+
+/** Сколько окон открыто сейчас. Прокрутку страницы возвращает закрытие последнего. */
+let openModals = 0;
+
+function lockPageScroll(): () => void {
+  openModals += 1;
+  document.documentElement.style.overflow = 'hidden';
+  return () => {
+    openModals -= 1;
+    if (openModals === 0) document.documentElement.style.overflow = '';
+  };
 }
 
 /**
@@ -25,6 +37,44 @@ export function Modal({ title, onClose, children }: ModalProps) {
     );
     first?.focus();
     return () => previous?.focus?.();
+  }, []);
+
+  // Страница под окном не прокручивается: прокрутка остаётся только у самого окна.
+  useEffect(() => lockPageScroll(), []);
+
+  // Кнопки окна стоят в один ряд, пока помещаются. Иначе — друг под другом на всю ширину.
+  useLayoutEffect(() => {
+    const modal = ref.current;
+    if (!modal) return;
+    const layout = () => {
+      for (const row of modal.querySelectorAll<HTMLElement>('.form-actions, .barcode-actions')) {
+        row.classList.remove('is-stacked');
+        row.classList.add('is-measuring');
+        const overflow = row.scrollWidth > row.clientWidth + 1;
+        row.classList.remove('is-measuring');
+        row.classList.toggle('is-stacked', overflow);
+      }
+    };
+    layout();
+    // jsdom в тестах не знает ResizeObserver: там раскладку не пересчитываем.
+    if (typeof ResizeObserver === 'undefined') return;
+    // Пересчёт — не чаще раза за кадр и вне обработчика ResizeObserver:
+    // смена класса меняет высоту окна, и пересчёт внутри обработчика дал бы ошибку цикла.
+    let frame = 0;
+    const schedule = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(layout);
+    };
+    const resize = new ResizeObserver(schedule);
+    resize.observe(modal);
+    // Новые кнопки появляются вместе с новыми элементами: текст внутри полей пересчёт не вызывает.
+    const mutation = new MutationObserver(schedule);
+    mutation.observe(modal, { childList: true, subtree: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      resize.disconnect();
+      mutation.disconnect();
+    };
   }, []);
 
   useEffect(() => {

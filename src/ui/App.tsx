@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useRef, type MouseEvent } from 'react';
 import { ROUTES, useRoute, type Route } from '../app/router';
 import { SettingsProvider, useSettings } from '../app/settingsContext';
 import { UpdateProvider, useAppUpdate } from '../app/updateContext';
@@ -6,7 +6,6 @@ import { applyTheme } from '../app/theme';
 import { useOnline } from '../app/useOnline';
 import { useDish } from '../dish/useDish';
 import { CalculatorPage } from './CalculatorPage';
-import { HeaderActionsContext } from './HeaderActions';
 import { Icon } from './icons';
 import { ModerationPage } from './ModerationPage';
 import { RecipesPage } from './RecipesPage';
@@ -59,7 +58,6 @@ function Shell() {
   const undo = useUndo();
   const { updateAvailable } = useAppUpdate();
   const page = PAGES.includes(route) ? route : 'calculator';
-  const [actionsSlot, setActionsSlot] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => applyTheme(settings.theme), [settings.theme]);
 
@@ -127,38 +125,35 @@ function Shell() {
             </a>
           ))}
         </nav>
-        <div className="app-actions" ref={setActionsSlot} />
       </header>
       {!online ? (
         <p className="banner banner-offline" role="status">
           Нет интернета. Поиск идёт только по справочнику на устройстве, расчёт работает как обычно.
         </p>
       ) : null}
-      <HeaderActionsContext.Provider value={actionsSlot}>
-        <main id="main-content" ref={mainRef} className="app-main" tabIndex={-1}>
-          {!ready ? (
-            <p className="hint" role="status">
-              Загружаем данные…
-            </p>
-          ) : page === 'settings' ? (
-            <SettingsPage />
-          ) : page === 'recipes' ? (
-            <RecipesPage
-              current={dish.state}
-              dispatch={dish.dispatch}
-              offerUndo={undo.offer}
-              dismissUndo={undo.dismiss}
-              onOpened={() => {
-                window.location.hash = '#/';
-              }}
-            />
-          ) : page === 'moderation' ? (
-            <ModerationPage offerUndo={undo.offer} />
-          ) : (
-            <CalculatorPage dish={dish} offerUndo={undo.offer} dismissUndo={undo.dismiss} />
-          )}
-        </main>
-      </HeaderActionsContext.Provider>
+      <main id="main-content" ref={mainRef} className="app-main" tabIndex={-1}>
+        {!ready ? (
+          <p className="hint" role="status">
+            Загружаем данные…
+          </p>
+        ) : page === 'settings' ? (
+          <SettingsPage />
+        ) : page === 'recipes' ? (
+          <RecipesPage
+            current={dish.state}
+            dispatch={dish.dispatch}
+            offerUndo={undo.offer}
+            dismissUndo={undo.dismiss}
+            onOpened={() => {
+              window.location.hash = '#/';
+            }}
+          />
+        ) : page === 'moderation' ? (
+          <ModerationPage offerUndo={undo.offer} />
+        ) : (
+          <CalculatorPage dish={dish} offerUndo={undo.offer} dismissUndo={undo.dismiss} />
+        )}
+      </main>
       <UndoToast entry={undo.entry} onDismiss={undo.dismiss} />
     </div>
   );

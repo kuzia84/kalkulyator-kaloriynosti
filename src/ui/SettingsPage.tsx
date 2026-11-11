@@ -101,10 +101,12 @@ export function SettingsPage() {
   return (
     <section aria-labelledby="settings-title" className="settings">
       <div className="page-header">
-        <h1 className="page-title" tabIndex={-1} id="settings-title">
-          Настройки
-        </h1>
-        <p className="page-subtitle">Настройки хранятся только на этом устройстве.</p>
+        <div className="page-heading">
+          <h1 className="page-title" tabIndex={-1} id="settings-title">
+            Настройки
+          </h1>
+          <p className="page-subtitle">Настройки хранятся только на этом устройстве.</p>
+        </div>
       </div>
 
       <UpdateSection />

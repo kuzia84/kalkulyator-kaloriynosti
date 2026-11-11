@@ -4,7 +4,6 @@ import { hasContent, initialDishState, type DishState } from '../dish/state';
 import type { UseDish } from '../dish/useDish';
 import { saveRecipe } from '../storage/recipes';
 import { DishExtras } from './DishExtras';
-import { HeaderActions } from './HeaderActions';
 import { TrashIcon } from './icons';
 import { IngredientsEditor } from './IngredientsEditor';
 import { ingredientsCount } from './plural';
@@ -79,39 +78,41 @@ export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageP
 
   return (
     <section aria-labelledby="calc-title">
-      <HeaderActions>
-        <button
-          type="button"
-          className="button button-clear"
-          onClick={clearTable}
-          disabled={!hasContent(state)}
-          aria-label="Очистить таблицу"
-        >
-          <TrashIcon />
-          <span className="button-clear-text">Очистить</span>
-        </button>
-        <button
-          type="button"
-          className="button button-primary"
-          disabled={saving}
-          onClick={() => void save()}
-        >
-          {state.recipeId ? 'Обновить рецепт' : 'Сохранить в рецепты'}
-        </button>
-      </HeaderActions>
       <div className="page-header">
-        <h1 className="page-title" tabIndex={-1} id="calc-title">
-          {state.name.trim() || 'Новое блюдо'}
-        </h1>
-        <p className="page-subtitle">
-          {filled > 0
-            ? `${ingredientsCount(filled)} · ${formatWeight(total.weight)} г`
-            : 'Калькулятор калорийности блюда'}
-        </p>
-        {/* Итог сохранения — у заголовка, рядом с кнопкой «Сохранить» в шапке. */}
-        <p className="save-status" role="status">
-          {message}
-        </p>
+        <div className="page-heading">
+          <h1 className="page-title" tabIndex={-1} id="calc-title">
+            {state.name.trim() || 'Новое блюдо'}
+          </h1>
+          <p className="page-subtitle">
+            {filled > 0
+              ? `${ingredientsCount(filled)} · ${formatWeight(total.weight)} г`
+              : 'Калькулятор калорийности блюда'}
+          </p>
+          {/* Итог сохранения — у заголовка, рядом с кнопкой «Сохранить». */}
+          <p className="save-status" role="status">
+            {message}
+          </p>
+        </div>
+        <div className="page-actions">
+          <button
+            type="button"
+            className="button button-clear"
+            onClick={clearTable}
+            disabled={!hasContent(state)}
+            aria-label="Очистить таблицу"
+          >
+            <TrashIcon />
+            <span className="button-clear-text">Очистить</span>
+          </button>
+          <button
+            type="button"
+            className="button button-primary"
+            disabled={saving}
+            onClick={() => void save()}
+          >
+            {state.recipeId ? 'Обновить рецепт' : 'Сохранить в рецепты'}
+          </button>
+        </div>
       </div>
       {!hasContent(state) ? (
         <p className="hint">
