@@ -7,6 +7,7 @@ import { isNewer, versionLabel } from '../app/updates';
 import { useOnline } from '../app/useOnline';
 import type { ExternalSource, Theme } from '../storage/schema';
 import { SUGGESTIONS_MAX, SUGGESTIONS_MIN } from '../storage/settings';
+import { DevTools } from './DevTools';
 
 const SOURCE_INFO: Record<ExternalSource, { title: string; text: string }> = {
   off: {
@@ -253,6 +254,8 @@ export function SettingsPage() {
           ))}
         </div>
       </fieldset>
+
+      {import.meta.env.DEV ? <DevTools /> : null}
     </section>
   );
 }

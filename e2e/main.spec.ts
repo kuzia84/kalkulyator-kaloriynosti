@@ -164,3 +164,25 @@ test('планшет и телефон в горизонтальной орие�
   ]);
   expect(scroll).toBeLessThanOrEqual(width);
 });
+
+test('правка рецепта: новый вес пересчитывает калорийность в списке', async ({ page }) => {
+  await pick(page, 1, 'греч', /Гречневая крупа ядрица/);
+  await page.getByLabel('Вес ингредиента 1, г').fill('100');
+  await page.getByLabel('Название блюда').fill('Гречка');
+  await page.getByRole('button', { name: 'Сохранить в рецепты' }).click();
+  await expect(page.getByText('Рецепт сохранён в «Мои рецепты».')).toBeVisible();
+
+  await page.getByRole('link', { name: 'Мои рецепты' }).click();
+  await expect(page.getByText(/308 ккал на 100 г/)).toBeVisible();
+  await page.getByRole('link', { name: 'Изменить рецепт «Гречка»' }).click();
+  await expect(page.getByRole('heading', { name: 'Правка рецепта' })).toBeVisible();
+
+  await pick(page, 2, 'вода', /Вода питьевая/);
+  await page.getByLabel('Вес ингредиента 2, г').fill('100');
+  // 308 ккал на 200 г → 154 на 100 г
+  await expect(page.getByLabel('Калорийность, ккал, на 100 г блюда')).toHaveText('154');
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+
+  await expect(page.getByText('Рецепт «Гречка» обновлён.')).toBeVisible();
+  await expect(page.getByText(/2 ингр\. · вес 200 г · 154 ккал на 100 г/)).toBeVisible();
+});

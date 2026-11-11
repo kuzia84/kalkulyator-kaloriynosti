@@ -99,6 +99,7 @@ function Shell() {
             current={dish.state}
             dispatch={dish.dispatch}
             offerUndo={undo.offer}
+            dismissUndo={undo.dismiss}
             onOpened={() => {
               window.location.hash = '#/';
             }}

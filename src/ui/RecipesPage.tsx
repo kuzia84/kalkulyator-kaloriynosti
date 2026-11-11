@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { recipeEditHash, recipeEditId, useHash } from '../app/router';
 import { formatNutrient, formatWeight, per100, per100Cooked, totals } from '../calc';
 import { hasContent, type DishAction, type DishState } from '../dish/state';
 import {
@@ -10,12 +11,14 @@ import {
 } from '../storage/recipes';
 import type { Dish } from '../storage/schema';
 import { Modal } from './Modal';
+import { RecipeEditor } from './RecipeEditor';
 import type { UndoEntry } from './UndoToast';
 
 export interface RecipesPageProps {
   current: DishState;
   dispatch: (action: DishAction) => void;
   offerUndo: (entry: UndoEntry) => void;
+  dismissUndo: () => void;
   /** Открыть калькулятор после загрузки рецепта. */
   onOpened: () => void;
 }
@@ -37,7 +40,45 @@ function summary(recipe: Dish): string {
   return parts.join(' · ');
 }
 
-export function RecipesPage({ current, dispatch, offerUndo, onOpened }: RecipesPageProps) {
+export function RecipesPage(props: RecipesPageProps) {
+  const editId = recipeEditId(useHash());
+  const [notice, setNotice] = useState('');
+  const returned = useRef(false);
+
+  if (editId != null) {
+    return (
+      <RecipeEditor
+        key={editId}
+        recipeId={editId}
+        offerUndo={props.offerUndo}
+        dismissUndo={props.dismissUndo}
+        onDone={(message) => {
+          setNotice(message ?? '');
+          returned.current = true;
+          window.location.hash = '#/recipes';
+        }}
+      />
+    );
+  }
+  return <RecipeList {...props} notice={notice} focusTitle={returned} />;
+}
+
+interface RecipeListProps extends RecipesPageProps {
+  /** Итог последней правки рецепта. */
+  notice: string;
+  /** Список открыт после выхода из правки: фокус на заголовок. */
+  focusTitle: { current: boolean };
+}
+
+function RecipeList({
+  current,
+  dispatch,
+  offerUndo,
+  onOpened,
+  notice,
+  focusTitle,
+}: RecipeListProps) {
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const [recipes, setRecipes] = useState<Dish[] | null>(null);
   const [error, setError] = useState('');
   const [confirmOpen, setConfirmOpen] = useState<Dish | null>(null);
@@ -53,6 +94,14 @@ export function RecipesPage({ current, dispatch, offerUndo, onOpened }: RecipesP
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  useEffect(() => {
+    // Возврат из правки происходит внутри раздела: App фокус не переводит.
+    if (focusTitle.current) {
+      focusTitle.current = false;
+      titleRef.current?.focus();
+    }
+  }, [focusTitle]);
 
   function open(recipe: Dish) {
     const snapshot = current;
@@ -95,13 +144,18 @@ export function RecipesPage({ current, dispatch, offerUndo, onOpened }: RecipesP
 
   return (
     <section aria-labelledby="recipes-title">
-      <h1 className="page-title" tabIndex={-1} id="recipes-title">
+      <h1 className="page-title" tabIndex={-1} id="recipes-title" ref={titleRef}>
         Мои рецепты
       </h1>
       <p className="hint">
         Рецепт хранит ингредиенты с их значениями на момент сохранения. Правки справочника рецепт не
         меняют.
       </p>
+      {notice ? (
+        <p className="hint" role="status">
+          {notice}
+        </p>
+      ) : null}
       {error ? (
         <p className="warning" role="alert">
           {error}
@@ -125,7 +179,7 @@ export function RecipesPage({ current, dispatch, offerUndo, onOpened }: RecipesP
                 {r.note ? <p className="recipe-note">{r.note}</p> : null}
                 <p className="hint">Изменён {dateFormatter.format(r.updatedAt)}</p>
               </div>
-              <div className="form-actions form-actions-start">
+              <div className="form-actions form-actions-start recipe-actions">
                 <button
                   type="button"
                   className="button button-primary"
@@ -133,6 +187,13 @@ export function RecipesPage({ current, dispatch, offerUndo, onOpened }: RecipesP
                 >
                   Открыть
                 </button>
+                <a
+                  className="button"
+                  href={recipeEditHash(r.id)}
+                  aria-label={`Изменить рецепт «${r.name}»`}
+                >
+                  Изменить
+                </a>
                 <button type="button" className="button" onClick={() => void copy(r)}>
                   Копировать
                 </button>
