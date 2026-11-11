@@ -10,3 +10,5 @@ test-results/
 .idea/
 *.local
 .playwright-mcp/
+__pycache__/
+*.pyc
