@@ -186,8 +186,11 @@ h2 {
   border-radius: 10px;
   background: var(--accent);
   color: var(--accent-contrast);
-  font-weight: 700;
-  font-size: 0.8rem;
+}
+
+.app-logo svg {
+  width: 30px;
+  height: 30px;
 }
 
 .app-title {
@@ -279,7 +282,6 @@ h2 {
 }
 
 .input-number {
-  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
@@ -450,6 +452,12 @@ a.button {
 
 .row-total {
   background: var(--surface-2);
+}
+
+.summary-weight {
+  display: none;
+  color: var(--text-muted);
+  font-weight: 400;
 }
 
 .row-total .cell-number {
@@ -1451,21 +1459,14 @@ a.button {
     width: 100%;
   }
 
-  /* В строках итогов вес идёт в один ряд с ккал и БЖУ. */
-  .dish-summary tr {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+  /* Карточки итогов: вес «Итого» стоит в заголовке, а «100 г» и так в названии строки. */
+  .dish-summary .summary-weight {
+    display: inline;
   }
 
-  .dish-summary .row-cooked {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .dish-summary .row-cooked .cell-weight {
-    grid-column: 1 / -1;
-  }
-
-  .dish-summary .cell-weight {
-    width: auto;
+  .row-total .cell-weight,
+  .row-per100 .cell-weight {
+    display: none;
   }
 
   .dish-table td[data-label]::before {

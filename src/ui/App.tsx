@@ -62,9 +62,14 @@ function Shell() {
       <header className="app-header">
         <a className="app-brand" href="#/">
           <span className="app-logo" aria-hidden="true">
-            ккал
+            <svg viewBox="0 0 40 40" focusable="false">
+              <circle cx="20" cy="20" r="15" fill="none" stroke="currentColor" strokeWidth="3" />
+              <path d="M20 20V9a11 11 0 0 1 10.5 14.2Z" fill="currentColor" />
+              <path d="M20 20l10.5 3.2A11 11 0 0 1 12 27.6Z" fill="currentColor" opacity="0.7" />
+              <path d="M20 20l-8 7.6A11 11 0 0 1 20 9Z" fill="currentColor" opacity="0.4" />
+            </svg>
           </span>
-          <span className="app-title">Калорийность блюда</span>
+          <span className="app-title">Ккалькулятор</span>
         </a>
         <nav className="app-nav" aria-label="Разделы">
           {ROUTES.filter((r) => PAGES.includes(r.route)).map((r) => (

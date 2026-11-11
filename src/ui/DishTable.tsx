@@ -93,8 +93,13 @@ export function DishTable({ state, dispatch, onRemoveRow, onManual, onBarcode }:
           </td>
         </tr>
         <tr className="row-total">
-          <th scope="row">Итого</th>
-          <td className="cell-number" data-label={SHORT_LABELS.weight}>
+          <th scope="row">
+            Итого
+            {hasWeight ? (
+              <span className="summary-weight"> · {formatWeight(total.weight)} г</span>
+            ) : null}
+          </th>
+          <td className="cell-number cell-weight" data-label={SHORT_LABELS.weight}>
             <output aria-label="Общий вес, г">
               {formatWeight(hasWeight ? total.weight : null)}
             </output>
@@ -103,7 +108,7 @@ export function DishTable({ state, dispatch, onRemoveRow, onManual, onBarcode }:
         </tr>
         <tr className="row-per100">
           <th scope="row">На 100 г блюда</th>
-          <td className="cell-number" data-label={SHORT_LABELS.weight}>
+          <td className="cell-number cell-weight" data-label={SHORT_LABELS.weight}>
             {hasWeight ? '100' : '—'}
           </td>
           <NutrientCells values={perHundred} label="на 100 г блюда" />

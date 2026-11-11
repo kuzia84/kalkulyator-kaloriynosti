@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { pickAction, type DishAction, type DishState } from '../dish/state';
-import { BarcodeDialog } from './BarcodeDialog';
+import { suggestionFromProduct } from '../search/types';
+import type { Product } from '../storage/schema';
+import { AddProductDialog } from './AddProductDialog';
 import { DishTable } from './DishTable';
 import { Modal } from './Modal';
 import { ProductForm } from './ProductForm';
@@ -12,14 +14,19 @@ export interface IngredientsEditorProps {
 }
 
 /**
- * Таблица ингредиентов с окнами ручного ввода продукта и поиска по штрихкоду.
+ * Таблица ингредиентов с окнами ручного ввода продукта и «Новый продукт».
+ * «Новый продукт» — то же окно, что в справочнике, только запись сразу встаёт в строку.
  * Общая часть калькулятора и экрана правки рецепта.
  */
 export function IngredientsEditor({ state, dispatch, onRemoveRow }: IngredientsEditorProps) {
-  const [manual, setManual] = useState<{ rowId: string; name: string; barcode?: string } | null>(
-    null,
-  );
-  const [barcodeRow, setBarcodeRow] = useState<string | null>(null);
+  const [manual, setManual] = useState<{ rowId: string; name: string } | null>(null);
+  const [searchRowId, setSearchRowId] = useState<string | null>(null);
+  const searchRow = state.rows.find((r) => r.id === searchRowId);
+
+  function pickIntoRow(rowId: string, product: Product) {
+    dispatch(pickAction(rowId, suggestionFromProduct(product)));
+    setSearchRowId(null);
+  }
 
   return (
     <>
@@ -29,13 +36,13 @@ export function IngredientsEditor({ state, dispatch, onRemoveRow }: IngredientsE
           dispatch={dispatch}
           onRemoveRow={onRemoveRow}
           onManual={(rowId, name) => setManual({ rowId, name })}
-          onBarcode={setBarcodeRow}
+          onBarcode={setSearchRowId}
         />
       </div>
       {manual ? (
         <Modal title="Новый продукт" onClose={() => setManual(null)}>
           <ProductForm
-            initial={{ name: manual.name, ...(manual.barcode ? { barcode: manual.barcode } : {}) }}
+            initial={{ name: manual.name }}
             submitLabel="Добавить в таблицу"
             onCancel={() => setManual(null)}
             onSubmit={(value) => {
@@ -45,19 +52,14 @@ export function IngredientsEditor({ state, dispatch, onRemoveRow }: IngredientsE
           />
         </Modal>
       ) : null}
-      {barcodeRow ? (
-        <BarcodeDialog
-          rowLabel={`Строка ${state.rows.findIndex((r) => r.id === barcodeRow) + 1}`}
-          onClose={() => setBarcodeRow(null)}
-          onPick={(product) => {
-            dispatch(pickAction(barcodeRow, product));
-            setBarcodeRow(null);
-          }}
-          onManual={(barcode) => {
-            const row = state.rows.find((r) => r.id === barcodeRow);
-            setBarcodeRow(null);
-            setManual({ rowId: barcodeRow, name: row?.per100 ? '' : (row?.name ?? ''), barcode });
-          }}
+      {searchRow ? (
+        <AddProductDialog
+          initialName={searchRow.per100 ? '' : searchRow.name}
+          submitLabel="Добавить в таблицу"
+          existingLabel="Добавить в таблицу"
+          onClose={() => setSearchRowId(null)}
+          onAdded={(product) => pickIntoRow(searchRow.id, product)}
+          onExisting={(product) => pickIntoRow(searchRow.id, product)}
         />
       ) : null}
     </>
