@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import { downloadText } from '../lib/download';
 import { BackupError, exportBackup, importBackup } from '../storage/backup';
 import { useSettings } from '../app/settingsContext';
+import { useAppUpdate } from '../app/updateContext';
+import { useOnline } from '../app/useOnline';
 import type { ExternalSource, Theme } from '../storage/schema';
 import { SUGGESTIONS_MAX, SUGGESTIONS_MIN } from '../storage/settings';
 
@@ -92,6 +94,8 @@ export function SettingsPage() {
         Настройки
       </h1>
       <p className="hint">Настройки хранятся только на этом устройстве.</p>
+
+      <UpdateSection />
 
       <fieldset className="card">
         <legend>Подсказки</legend>
@@ -249,5 +253,83 @@ export function SettingsPage() {
         </div>
       </fieldset>
     </section>
+  );
+}
+
+const checkTimeFormatter = new Intl.DateTimeFormat('ru-RU', {
+  dateStyle: 'short',
+  timeStyle: 'short',
+});
+
+/** Блок «Версия приложения»: проверка и установка новой версии, сброс кэша. */
+function UpdateSection() {
+  const {
+    status,
+    current,
+    remote,
+    lastCheckAt,
+    updateAvailable,
+    checkNow,
+    applyUpdate,
+    resetCache,
+  } = useAppUpdate();
+  const online = useOnline();
+  const busy = status === 'checking' || status === 'updating';
+
+  const message =
+    status === 'checking'
+      ? 'Проверяем…'
+      : status === 'updating'
+        ? 'Обновляем приложение…'
+        : updateAvailable
+          ? `Вышла новая версия${remote ? ` ${remote.version} (сборка ${remote.build})` : ''}. Нажмите «Обновить»: страница перезагрузится.`
+          : status === 'offline' || !online
+            ? 'Не удалось узнать версию на сервере: нет связи. Проверьте позже.'
+            : status === 'up-to-date'
+              ? 'Установлена последняя версия.'
+              : '';
+
+  return (
+    <fieldset className={`card update-card${updateAvailable ? ' is-available' : ''}`}>
+      <legend>Версия приложения</legend>
+      <p>
+        Установлена версия {current.version} (сборка {current.build}).
+        {lastCheckAt ? ` Проверено: ${checkTimeFormatter.format(lastCheckAt)}.` : ''}
+      </p>
+      <div className="form-actions form-actions-start">
+        {updateAvailable ? (
+          <button
+            type="button"
+            className="button button-update"
+            disabled={busy}
+            onClick={() => void applyUpdate()}
+          >
+            <span className="update-dot" aria-hidden="true">
+              !
+            </span>
+            Обновить приложение
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="button button-primary"
+            disabled={busy || !online}
+            onClick={() => void checkNow()}
+          >
+            Проверить обновления
+          </button>
+        )}
+        <button type="button" className="button" disabled={busy} onClick={() => void resetCache()}>
+          Сбросить кэш и перезагрузить
+        </button>
+      </div>
+      <p className="hint" role="status">
+        {message}
+      </p>
+      <p className="hint">
+        Приложение само проверяет версию раз в день. Сброс кэша удаляет сохранённые файлы приложения
+        и скачивает их заново. Справочник, рецепты, черновик и настройки остаются.
+      </p>
+    </fieldset>
   );
 }
