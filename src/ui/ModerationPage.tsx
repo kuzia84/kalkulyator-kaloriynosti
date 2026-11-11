@@ -5,6 +5,7 @@ import {
   filterProducts,
   mergeProducts,
   restoreProducts,
+  unmergeProducts,
   updateProduct,
   type ProductFilter,
   type SortDir,
@@ -109,10 +110,20 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
     }
   }
 
+  /** Правка одной записи: обновляется только её строка, без чтения всего справочника. */
+  async function patch(id: string, change: Parameters<typeof updateProduct>[1]) {
+    setError('');
+    try {
+      const updated = await updateProduct(id, change);
+      setProducts((list) => list?.map((p) => (p.id === id ? updated : p)) ?? list);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Действие не выполнено.');
+      await reload();
+    }
+  }
+
   function toggleVerified(p: Product) {
-    void run(async () => {
-      await updateProduct(p.id, { verified: !p.verified });
-    });
+    void patch(p.id, { verified: !p.verified });
   }
 
   function confirmDelete(p: Product) {
@@ -134,7 +145,7 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
       setSelected(new Set());
       offerUndo({
         message: `Объединено записей: ${result.removed.length + 1}.`,
-        undo: () => void run(() => restoreProducts([result.targetBefore, ...result.removed])),
+        undo: () => void run(() => unmergeProducts(result)),
       });
     });
   }
@@ -366,9 +377,7 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
             onSubmit={(value) => {
               const id = dialog.product.id;
               setDialog(null);
-              void run(async () => {
-                await updateProduct(id, { ...value, barcode: value.barcode ?? '' });
-              });
+              void patch(id, { ...value, barcode: value.barcode ?? '' });
             }}
           />
         </Modal>

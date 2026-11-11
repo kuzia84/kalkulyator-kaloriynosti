@@ -122,11 +122,17 @@ export async function commitUsage(
 ): Promise<string> {
   return db.transaction('rw', db.products, async () => {
     if (input.productId) {
-      const existing = await db.products.get(input.productId);
+      // Запись могли объединить с другой: старый id остаётся псевдонимом.
+      const existing =
+        (await db.products.get(input.productId)) ??
+        (await db.products.where('aliases').equals(input.productId).first());
       if (existing) {
         await markUsed(existing.id, db, now);
         return existing.id;
       }
+      // Модератор удалил запись. Блюдо хранит свою копию значений, а в справочник запись
+      // не возвращается.
+      return input.productId;
     }
     const duplicate = await findDuplicate(input, db);
     if (duplicate) {
@@ -152,6 +158,9 @@ async function findDuplicate(input: NewProduct, db: AppDB): Promise<Product | un
       .filter((p) => p.source === input.source)
       .first();
     if (byExternal) return byExternal;
+    // Внешний продукт, который модератор объединил с другой записью.
+    const merged = await db.products.where('aliases').equals(input.externalId).first();
+    if (merged) return merged;
   }
   const barcode = input.barcode ? normalizeBarcode(input.barcode) : '';
   if (barcode) {

@@ -18,7 +18,7 @@ export const EXTERNAL_DEBOUNCE_MS = 400;
 
 /** Внешние результаты без тех, что уже есть в справочнике. */
 export function mergeSuggestions(local: Suggestion[], external: ExternalProduct[]): Suggestion[] {
-  const known = new Set(local.map((s) => s.externalId).filter(Boolean));
+  const known = new Set(local.flatMap((s) => [s.externalId, ...(s.aliases ?? [])]).filter(Boolean));
   const seen = new Set<string>();
   const extra: Suggestion[] = [];
   for (const p of external) {

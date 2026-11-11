@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AppDB, syncSeed } from '../storage/db';
-import { commitUsage } from './catalog';
+import { commitUsage, markUsed } from './catalog';
 import {
   deleteProduct,
   filterProducts,
   mergeProducts,
   restoreProducts,
+  unmergeProducts,
   updateProduct,
   type ProductFilter,
 } from './moderation';
@@ -82,8 +83,11 @@ describe('модерация', () => {
       barcode: '4601916007082',
     });
     expect(await db.products.get(b)).toBeUndefined();
-    await restoreProducts([result.targetBefore, ...result.removed], db);
-    expect((await db.products.get(a))!.rank).toBe(1);
+    // После объединения цель снова использовали: отмена вычитает только добавленное.
+    await markUsed(a, db, 300);
+    await unmergeProducts(result, db);
+    expect(await db.products.get(a)).toMatchObject({ rank: 2, lastUsedAt: 300 });
+    expect((await db.products.get(a))!.barcode).toBeUndefined();
     expect(await db.products.get(b)).toBeDefined();
   });
 
@@ -109,5 +113,71 @@ describe('модерация', () => {
     const all = await db.products.toArray();
     const sorted = filterProducts(all, ALL, { key: 'kcal', dir: 'desc' });
     expect(sorted[0]!.name).toBe('Масло подсолнечное');
+  });
+
+  it('объединённый внешний продукт не создаётся снова', async () => {
+    const offProduct = {
+      name: 'Творог 5%',
+      kcal: 121,
+      protein: 17.2,
+      fat: 5,
+      carbs: 1.8,
+      source: 'off' as const,
+      externalId: 'off:777',
+    };
+    const dup = await commitUsage(offProduct, db);
+    await mergeProducts('sk-037', ['sk-037', dup], db);
+    const again = await commitUsage(offProduct, db);
+    expect(again).toBe('sk-037');
+    // Строка блюда со старым id тоже попадает в цель.
+    expect(await commitUsage({ ...offProduct, productId: dup }, db)).toBe('sk-037');
+  });
+
+  it('удалённая запись не возвращается из блюда', async () => {
+    await deleteProduct('sk-014', db);
+    const id = await commitUsage(
+      {
+        name: 'Картофель',
+        kcal: 77,
+        protein: 2,
+        fat: 0.4,
+        carbs: 16.3,
+        source: 'skurikhin',
+        productId: 'sk-014',
+      },
+      db,
+    );
+    expect(id).toBe('sk-014');
+    expect(await db.products.where('nameNorm').equals('картофель').count()).toBe(0);
+  });
+
+  it('правка модератора не теряется при обновлении стартового набора', async () => {
+    await updateProduct('sk-014', { kcal: 80 }, db);
+    await db.meta.update('seed', { version: 0 });
+    await syncSeed(db);
+    expect((await db.products.get('sk-014'))!.kcal).toBe(80);
+  });
+
+  it('штрихкод чужой записи не принимается', async () => {
+    await updateProduct('sk-014', { barcode: '4601916007082' }, db);
+    await expect(updateProduct('sk-015', { barcode: '4601916007082' }, db)).rejects.toThrow(
+      /уже есть у «Картофель»/,
+    );
+  });
+
+  it('поиск по штрихкоду с пробелами', async () => {
+    await updateProduct('sk-014', { barcode: '4601916007082' }, db);
+    const all = await db.products.toArray();
+    expect(
+      filterProducts(all, { ...ALL, query: '4601 916 007082' }, { key: 'name', dir: 'asc' }).map(
+        (p) => p.id,
+      ),
+    ).toEqual(['sk-014']);
+  });
+
+  it('объединение переносит «проверено» от дубликата', async () => {
+    await updateProduct('sk-034', { verified: true }, db);
+    const r = await mergeProducts('sk-035', ['sk-034'], db);
+    expect(r.target.verified).toBe(true);
   });
 });
