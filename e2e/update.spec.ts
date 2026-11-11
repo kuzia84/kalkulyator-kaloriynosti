@@ -4,9 +4,12 @@ test('version.json отдаётся и совпадает со сборкой с
   await page.goto('./#/settings');
   const res = await request.get('version.json');
   expect(res.ok()).toBe(true);
-  const remote = (await res.json()) as { version: string; build: string };
+  const remote = (await res.json()) as { version: string; build: string; builtAt: string };
+  // Пользователь видит дату сборки «от дд.мм.гг» и номер сборки из version.json.
   const card = page.locator('.update-card');
-  await expect(card).toContainText(`Установлена версия ${remote.version} (сборка ${remote.build})`);
+  await expect(card).toContainText(
+    new RegExp(String.raw`Установлена версия от \d{2}\.\d{2}\.\d{2} \(сборка ${remote.build}\)`),
+  );
   await expect(card).toContainText('Установлена последняя версия.');
   // Блок версии — первый на странице настроек.
   await expect(page.locator('.settings fieldset').first()).toHaveClass(/update-card/);

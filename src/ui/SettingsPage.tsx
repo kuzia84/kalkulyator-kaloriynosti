@@ -3,6 +3,7 @@ import { downloadText } from '../lib/download';
 import { BackupError, exportBackup, importBackup } from '../storage/backup';
 import { useSettings } from '../app/settingsContext';
 import { useAppUpdate } from '../app/updateContext';
+import { isNewer, versionLabel } from '../app/updates';
 import { useOnline } from '../app/useOnline';
 import type { ExternalSource, Theme } from '../storage/schema';
 import { SUGGESTIONS_MAX, SUGGESTIONS_MIN } from '../storage/settings';
@@ -275,6 +276,9 @@ function UpdateSection() {
   } = useAppUpdate();
   const online = useOnline();
   const busy = status === 'checking' || status === 'updating';
+  // Обновление может прийти только от service worker: тогда запомненная версия сервера
+  // не новее установленной, и её дату не показываем как новую.
+  const remoteIsNewer = isNewer(remote, current);
 
   const message =
     status === 'checking'
@@ -286,7 +290,7 @@ function UpdateSection() {
             ? 'Вышла новая версия, но сейчас нет связи. Обновите приложение, когда появится интернет.'
             : 'Не удалось узнать версию на сервере: нет связи. Проверьте позже.'
           : updateAvailable
-            ? `Вышла новая версия${remote ? ` ${remote.version} (сборка ${remote.build})` : ''}. Нажмите «Обновить»: страница перезагрузится.`
+            ? `Вышла новая версия${remoteIsNewer && remote ? ` ${versionLabel(remote)} (сборка ${remote.build})` : ''}. Нажмите «Обновить»: страница перезагрузится.`
             : status === 'invalid'
               ? 'Сервер не отдал данные о версии. Попробуйте позже.'
               : status === 'checked'
@@ -297,7 +301,7 @@ function UpdateSection() {
     <fieldset className={`card update-card${updateAvailable ? ' is-available' : ''}`}>
       <legend>Версия приложения</legend>
       <p>
-        Установлена версия {current.version} (сборка {current.build}).
+        Установлена версия {versionLabel(current)} (сборка {current.build}).
         {lastCheckAt ? ` Проверено: ${checkTimeFormatter.format(lastCheckAt)}.` : ''}
       </p>
       <div className="form-actions form-actions-start">

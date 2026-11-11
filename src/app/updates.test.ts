@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  versionLabel,
   checkRemoteVersion,
   freshReloadUrl,
   CHECK_INTERVAL_MS,
@@ -121,5 +122,22 @@ describe('freshReloadUrl', () => {
     expect(freshReloadUrl({ pathname: '/app/', hash: '#/settings' }, 7)).toBe(
       '/app/?r=7#/settings',
     );
+  });
+});
+
+describe('versionLabel', () => {
+  it('дата сборки «от дд.мм.гг» по московскому времени', () => {
+    expect(versionLabel({ version: '0.2.0', builtAt: '2026-11-05T12:00:00.000Z' })).toBe(
+      'от 05.11.26',
+    );
+    // 22:30 UTC — уже следующий день в Москве, на любом устройстве.
+    expect(versionLabel({ version: '0.2.0', builtAt: '2026-11-11T22:30:00.000Z' })).toBe(
+      'от 12.11.26',
+    );
+  });
+
+  it('без даты — номер версии', () => {
+    expect(versionLabel({ version: '0.2.0' })).toBe('0.2.0');
+    expect(versionLabel({ version: '0.2.0', builtAt: 'не дата' })).toBe('0.2.0');
   });
 });
