@@ -5,12 +5,13 @@ import { applyTheme } from '../app/theme';
 import { useOnline } from '../app/useOnline';
 import { useDish } from '../dish/useDish';
 import { CalculatorPage } from './CalculatorPage';
+import { ModerationPage } from './ModerationPage';
 import { SettingsPage } from './SettingsPage';
 import { UndoToast, useUndo } from './UndoToast';
 import './styles.css';
 
 /** Разделы, которые уже есть в приложении. */
-const PAGES: Route[] = ['calculator', 'settings'];
+const PAGES: Route[] = ['calculator', 'moderation', 'settings'];
 
 function Shell() {
   const route = useRoute();
@@ -53,6 +54,8 @@ function Shell() {
           </p>
         ) : page === 'settings' ? (
           <SettingsPage />
+        ) : page === 'moderation' ? (
+          <ModerationPage offerUndo={undo.offer} />
         ) : (
           <CalculatorPage dish={dish} offerUndo={undo.offer} dismissUndo={undo.dismiss} />
         )}

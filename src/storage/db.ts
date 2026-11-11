@@ -93,4 +93,14 @@ export async function rememberDeletedSeed(db: AppDB, productId: string): Promise
   });
 }
 
+/** Снимает отметку об удалении записи набора: модератор отменил удаление. */
+export async function forgetDeletedSeed(db: AppDB, productId: string): Promise<void> {
+  await db.transaction('rw', db.meta, async () => {
+    const meta = await db.meta.get('seed');
+    if (!meta || !meta.deletedIds.includes(productId)) return;
+    meta.deletedIds = meta.deletedIds.filter((id) => id !== productId);
+    await db.meta.put(meta);
+  });
+}
+
 export const db = new AppDB();
