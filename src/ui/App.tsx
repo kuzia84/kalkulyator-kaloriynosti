@@ -1,36 +1,74 @@
+import { useEffect } from 'react';
+import { ROUTES, useRoute, type Route } from '../app/router';
+import { SettingsProvider, useSettings } from '../app/settingsContext';
+import { useOnline } from '../app/useOnline';
 import { useDish } from '../dish/useDish';
-import { DEFAULT_SETTINGS } from '../storage/schema';
 import { CalculatorPage } from './CalculatorPage';
+import { SettingsPage } from './SettingsPage';
 import { UndoToast, useUndo } from './UndoToast';
 import './styles.css';
 
-export function App() {
+/** Разделы, которые уже есть в приложении. */
+const PAGES: Route[] = ['calculator', 'settings'];
+
+function Shell() {
+  const route = useRoute();
+  const online = useOnline();
+  const { settings, ready: settingsReady } = useSettings();
   const dish = useDish();
   const undo = useUndo();
+  const page = PAGES.includes(route) ? route : 'calculator';
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (settings.theme === 'system') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', settings.theme);
+  }, [settings.theme]);
+
+  const ready = dish.ready && settingsReady;
 
   return (
     <div className="app">
       <header className="app-header">
-        <span className="app-logo" aria-hidden="true">
-          ккал
-        </span>
-        <span className="app-title">Калорийность блюда</span>
+        <a className="app-brand" href="#/">
+          <span className="app-logo" aria-hidden="true">
+            ккал
+          </span>
+          <span className="app-title">Калорийность блюда</span>
+        </a>
+        <nav className="app-nav" aria-label="Разделы">
+          {ROUTES.filter((r) => PAGES.includes(r.route)).map((r) => (
+            <a key={r.route} href={r.hash} aria-current={page === r.route ? 'page' : undefined}>
+              {r.label}
+            </a>
+          ))}
+        </nav>
       </header>
+      {!online ? (
+        <p className="banner banner-offline" role="status">
+          Нет интернета. Поиск идёт только по справочнику на устройстве, расчёт работает как обычно.
+        </p>
+      ) : null}
       <main className="app-main">
-        {dish.ready ? (
-          <CalculatorPage
-            dish={dish}
-            suggestionsLimit={DEFAULT_SETTINGS.suggestionsLimit}
-            offerUndo={undo.offer}
-            dismissUndo={undo.dismiss}
-          />
-        ) : (
+        {!ready ? (
           <p className="hint" role="status">
             Загружаем данные…
           </p>
+        ) : page === 'settings' ? (
+          <SettingsPage />
+        ) : (
+          <CalculatorPage dish={dish} offerUndo={undo.offer} dismissUndo={undo.dismiss} />
         )}
       </main>
       <UndoToast entry={undo.entry} onDismiss={undo.dismiss} />
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <SettingsProvider>
+      <Shell />
+    </SettingsProvider>
   );
 }

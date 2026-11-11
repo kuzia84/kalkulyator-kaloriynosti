@@ -1,11 +1,21 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '../storage/db';
 import { resetDb } from '../test/db';
 import { App } from './App';
 
-beforeEach(resetDb);
+beforeEach(async () => {
+  await resetDb();
+  window.location.hash = '';
+  // Сеть в тестах выключена: внешний поиск получает ошибку, как без интернета.
+  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 async function renderApp() {
   const user = userEvent.setup();
@@ -141,5 +151,65 @@ describe('калькулятор', () => {
     const name = await screen.findByRole('combobox', { name: 'Ингредиент 1' });
     expect(name).toHaveValue('Картофель');
     expect(screen.getByLabelText('Вес ингредиента 1, г')).toHaveValue('300');
+  });
+
+  it('подсказки из Open Food Facts отмечены источником', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            products: [
+              {
+                code: '4601916007082',
+                product_name_ru: 'Гречка ядрица «Тест»',
+                nutriments: {
+                  'energy-kcal_100g': 351,
+                  proteins_100g: 12,
+                  fat_100g: 3.4,
+                  carbohydrates_100g: 64.2,
+                },
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+    const user = await renderApp();
+    await user.type(screen.getByRole('combobox', { name: 'Ингредиент 1' }), 'греч');
+    const external = await screen.findByRole('option', { name: /Гречка ядрица «Тест»/ });
+    expect(external).toHaveTextContent('Open Food Facts · в сети');
+    expect(screen.getByRole('option', { name: /Гречневая крупа ядрица/ })).toHaveTextContent(
+      'Скурихин',
+    );
+  });
+
+  it('ошибка сети оставляет подсказки справочника', async () => {
+    const user = await renderApp();
+    await user.type(screen.getByRole('combobox', { name: 'Ингредиент 1' }), 'карт');
+    expect(await screen.findByRole('option', { name: /Картофель/ })).toBeInTheDocument();
+    expect(await screen.findByText(/Не ответил: Open Food Facts/)).toBeInTheDocument();
+  });
+
+  it('без интернета — сообщение, поиск по справочнику работает', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    const user = await renderApp();
+    expect(screen.getByText(/Нет интернета. Поиск идёт только по справочнику/)).toBeInTheDocument();
+    await user.type(screen.getByRole('combobox', { name: 'Ингредиент 1' }), 'карт');
+    expect(await screen.findByRole('option', { name: /Картофель/ })).toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('настройки', () => {
+  it('ключ USDA сохраняется на устройстве', async () => {
+    const user = userEvent.setup();
+    window.location.hash = '#/settings';
+    render(<App />);
+    const key = await screen.findByLabelText('Ключ USDA API');
+    await user.type(key, 'my-key');
+    await user.click(screen.getByRole('button', { name: 'Сохранить' }));
+    await waitFor(async () => expect((await db.settings.get('app'))?.usdaApiKey).toBe('my-key'));
   });
 });

@@ -8,17 +8,11 @@ import type { UndoEntry } from './UndoToast';
 
 export interface CalculatorPageProps {
   dish: UseDish;
-  suggestionsLimit: number;
   offerUndo: (entry: UndoEntry) => void;
   dismissUndo: () => void;
 }
 
-export function CalculatorPage({
-  dish,
-  suggestionsLimit,
-  offerUndo,
-  dismissUndo,
-}: CalculatorPageProps) {
+export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageProps) {
   const { state, dispatch } = dish;
   const [manual, setManual] = useState<{ rowId: string; name: string } | null>(null);
   // Состояние сразу после очистки. Любая следующая правка убирает возможность вернуть таблицу:
@@ -82,7 +76,6 @@ export function CalculatorPage({
         <DishTable
           state={state}
           dispatch={dispatch}
-          suggestionsLimit={suggestionsLimit}
           onRemoveRow={removeRow}
           onManual={(rowId, name) => setManual({ rowId, name })}
         />
