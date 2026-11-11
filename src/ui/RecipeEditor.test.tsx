@@ -127,7 +127,7 @@ describe('правка рецепта', () => {
     const user = userEvent.setup();
     window.location.hash = '#/recipes';
     render(<App />);
-    await user.click(await screen.findByRole('button', { name: 'Открыть' }));
+    await user.click(await screen.findByRole('button', { name: /^В калькулятор: рецепт/ }));
     await screen.findByRole('button', { name: 'Обновить рецепт' });
 
     window.location.hash = '#/recipes/edit/r1';
