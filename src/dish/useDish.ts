@@ -1,13 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
-import { commitUsage } from '../catalog/catalog';
 import { loadDraft, saveDraft } from '../storage/draft';
-import {
-  dishReducer,
-  initialDishState,
-  needsCommit,
-  type DishAction,
-  type DishState,
-} from './state';
+import { dishReducer, initialDishState, type DishAction, type DishState } from './state';
+import { useCatalogCommits } from './useCatalogCommits';
 
 export interface UseDish {
   state: DishState;
@@ -28,9 +22,6 @@ export const DRAFT_SAVE_DELAY_MS = 300;
 export function useDish(): UseDish {
   const [state, dispatch] = useReducer(dishReducer, undefined, initialDishState);
   const [ready, setReady] = useState(false);
-  // pickId выбора → id записи справочника. Выбор пишется в справочник один раз,
-  // даже если строку удалили и вернули отменой, пока шёл запрос.
-  const committedPicks = useRef(new Map<string, Promise<string>>());
   const latest = useRef(state);
   latest.current = state;
 
@@ -68,32 +59,7 @@ export function useDish(): UseDish {
     };
   }, [state, ready]);
 
-  useEffect(() => {
-    if (!ready) return;
-    for (const row of state.rows) {
-      if (!needsCommit(row) || !row.per100 || !row.pickId) continue;
-      const pickId = row.pickId;
-      let pending = committedPicks.current.get(pickId);
-      if (!pending) {
-        pending = commitUsage({
-          name: row.name,
-          ...row.per100,
-          source: row.source ?? 'user',
-          ...(row.productId ? { productId: row.productId } : {}),
-          ...(row.barcode ? { barcode: row.barcode } : {}),
-          ...(row.externalId ? { externalId: row.externalId } : {}),
-        });
-        committedPicks.current.set(pickId, pending);
-        pending.catch((error: unknown) => {
-          committedPicks.current.delete(pickId);
-          console.error('Не удалось записать продукт в справочник', error);
-        });
-      }
-      pending
-        .then((productId) => dispatch({ type: 'committed', rowId: row.id, productId, pickId }))
-        .catch(() => {});
-    }
-  }, [state.rows, ready]);
+  useCatalogCommits(state.rows, dispatch, ready);
 
   return { state, dispatch, ready };
 }

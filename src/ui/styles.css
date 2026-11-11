@@ -306,6 +306,11 @@ h2 {
   padding: 0 16px;
 }
 
+/* Ссылка в виде кнопки, например «Изменить» в списке рецептов. */
+a.button {
+  text-decoration: none;
+}
+
 .button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -960,11 +965,20 @@ h2 {
 }
 
 .recipe-item {
+  /* Кнопки всегда под текстом: одно место действий у всех карточек, кнопки не тянутся в высоту. */
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 8px 16px;
+  flex-direction: column;
+  gap: 8px;
   padding: 12px 16px;
+}
+
+.recipe-actions {
+  margin-top: 0;
+}
+
+/* «Удалить» отделено от остальных действий. */
+.recipe-actions .button-danger {
+  margin-left: auto;
 }
 
 .recipe-item h2 {
