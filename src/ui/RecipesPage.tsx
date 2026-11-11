@@ -238,15 +238,16 @@ function RecipeList({
                     type="button"
                     className="button button-primary"
                     onClick={() => (hasContent(current) ? setConfirmOpen(r) : open(r))}
+                    aria-label={`В калькулятор: рецепт «${r.name}»`}
                   >
-                    Открыть
+                    В калькулятор
                   </button>
                   <a
                     className="button"
                     href={recipeEditHash(r.id)}
                     aria-label={`Изменить рецепт «${r.name}»`}
                   >
-                    Изменить
+                    Изменить рецепт
                   </a>
                   <ActionMenu
                     label={`Ещё действия с рецептом «${r.name}»`}

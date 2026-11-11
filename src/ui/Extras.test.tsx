@@ -56,7 +56,7 @@ describe('порция, диаграмма, рецепты', () => {
     await user.click(screen.getByRole('button', { name: 'Очистить таблицу' }));
     await user.click(screen.getByRole('link', { name: 'Мои рецепты' }));
     await screen.findByRole('heading', { name: 'Сироп' });
-    await user.click(screen.getByRole('button', { name: 'Открыть' }));
+    await user.click(screen.getByRole('button', { name: /^В калькулятор: рецепт/ }));
     await waitFor(() =>
       expect(screen.getByRole('combobox', { name: 'Ингредиент 1' })).toHaveValue('Сахар-песок'),
     );
