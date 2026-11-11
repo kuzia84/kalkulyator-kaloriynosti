@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, type MouseEvent } from 'react';
 import { ROUTES, useRoute, type Route } from '../app/router';
 import { SettingsProvider, useSettings } from '../app/settingsContext';
 import { applyTheme } from '../app/theme';
@@ -25,9 +25,32 @@ function Shell() {
   useEffect(() => applyTheme(settings.theme), [settings.theme]);
 
   const ready = dish.ready && settingsReady;
+  const mainRef = useRef<HTMLElement>(null);
+  const previousPage = useRef(page);
+
+  // Смена раздела переводит фокус на заголовок страницы: программа чтения с экрана
+  // объявляет новый раздел, а Tab продолжает с начала его содержимого.
+  useEffect(() => {
+    if (!ready || previousPage.current === page) return;
+    previousPage.current = page;
+    const heading = mainRef.current?.querySelector<HTMLElement>('h1');
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus();
+    }
+  }, [page, ready]);
+
+  function skipToContent(e: MouseEvent<HTMLAnchorElement>) {
+    // Обычный переход по #id сменил бы маршрут: адреса разделов тоже лежат в hash.
+    e.preventDefault();
+    mainRef.current?.focus();
+  }
 
   return (
     <div className="app">
+      <a className="skip-link" href="#main-content" onClick={skipToContent}>
+        Перейти к содержимому
+      </a>
       <header className="app-header">
         <a className="app-brand" href="#/">
           <span className="app-logo" aria-hidden="true">
@@ -48,7 +71,7 @@ function Shell() {
           Нет интернета. Поиск идёт только по справочнику на устройстве, расчёт работает как обычно.
         </p>
       ) : null}
-      <main className="app-main">
+      <main id="main-content" ref={mainRef} className="app-main" tabIndex={-1}>
         {!ready ? (
           <p className="hint" role="status">
             Загружаем данные…

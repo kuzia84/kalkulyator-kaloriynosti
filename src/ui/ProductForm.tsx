@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import {
   atwaterKcal,
   formatNutrient,
@@ -47,6 +47,14 @@ export function ProductForm({ initial, submitLabel, onSubmit, onCancel }: Produc
   });
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
   const uid = useId();
+  const formRef = useRef<HTMLFormElement>(null);
+  // Номер неудачной отправки: после неё фокус уходит на первое поле с ошибкой.
+  const [failedSubmit, setFailedSubmit] = useState(0);
+
+  useEffect(() => {
+    if (failedSubmit === 0) return;
+    formRef.current?.querySelector<HTMLInputElement>('[aria-invalid="true"]')?.focus();
+  }, [failedSubmit]);
   const errorId = (field: Field) => `${uid}-${field}-error`;
 
   const parsed = {
@@ -80,7 +88,10 @@ export function ProductForm({ initial, submitLabel, onSubmit, onCancel }: Produc
       next.barcode = 'Штрихкод — 8, 12 или 13 цифр.';
     }
     setErrors(next);
-    if (Object.keys(next).length > 0) return;
+    if (Object.keys(next).length > 0) {
+      setFailedSubmit((n) => n + 1);
+      return;
+    }
     onSubmit({
       name: values.name.trim(),
       kcal: parsed.kcal!,
@@ -92,7 +103,7 @@ export function ProductForm({ initial, submitLabel, onSubmit, onCancel }: Produc
   }
 
   return (
-    <form className="product-form" onSubmit={submit} noValidate>
+    <form ref={formRef} className="product-form" onSubmit={submit} noValidate>
       <p className="hint">Значения на 100 г сырого продукта.</p>
       <label className="field">
         <span>Название</span>
