@@ -1,7 +1,7 @@
 import { isSuspicious } from '../calc';
 import { db as defaultDb, forgetDeletedSeed, rememberDeletedSeed, type AppDB } from '../storage/db';
 import type { Product, ProductSource } from '../storage/schema';
-import { validateProduct } from './catalog';
+import { makeProduct, validateProduct } from './catalog';
 import { normalizeBarcode, normalizeName } from './normalize';
 
 export interface ProductPatch {
@@ -51,18 +51,7 @@ export async function updateProduct(
     }
     if (patch.barcode !== undefined) {
       const code = normalizeBarcode(patch.barcode);
-      if (code && code !== current.barcode) {
-        const owner = await db.products
-          .where('barcode')
-          .equals(code)
-          .filter((p) => p.id !== id)
-          .first();
-        if (owner) {
-          throw new ModerationError(
-            `Штрихкод ${code} уже есть у «${owner.name}». Объедините записи, если это один продукт.`,
-          );
-        }
-      }
+      if (code && code !== current.barcode) await assertBarcodeFree(code, id, db);
       if (code) next.barcode = code;
       else delete next.barcode;
     }
@@ -71,6 +60,61 @@ export async function updateProduct(
     validateProduct(next);
     await db.products.put(next);
     return next;
+  });
+}
+
+/** Отклоняет штрихкод, который уже есть у другой записи справочника. */
+async function assertBarcodeFree(code: string, exceptId: string | null, db: AppDB): Promise<void> {
+  const owner = await db.products
+    .where('barcode')
+    .equals(code)
+    .filter((p) => p.id !== exceptId)
+    .first();
+  if (owner) {
+    throw new ModerationError(
+      `Штрихкод ${code} уже есть у «${owner.name}». Измените эту запись или удалите лишнюю.`,
+    );
+  }
+}
+
+export interface ManualProduct {
+  name: string;
+  kcal: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+  barcode?: string;
+  verified?: boolean;
+  /** Откуда взяты значения. По умолчанию «user». Форму могли заполнить из внешнего источника. */
+  source?: ProductSource;
+  /** id во внешнем источнике: по нему внешний поиск не создаст дубликат. */
+  externalId?: string;
+}
+
+/**
+ * Добавляет продукт в справочник без блюда: вручную или из внешнего источника.
+ * Запись получает ранг 0. `editedAt` защищает её от обновления стартового набора.
+ */
+export async function addProduct(
+  input: ManualProduct,
+  db: AppDB = defaultDb,
+  now = Date.now(),
+): Promise<Product> {
+  return db.transaction('rw', db.products, async () => {
+    const product: Product = {
+      ...makeProduct({ ...input, source: input.source ?? 'user' }),
+      verified: input.verified ?? false,
+      editedAt: now,
+    };
+    if (product.externalId) {
+      const owner =
+        (await db.products.where('externalId').equals(product.externalId).first()) ??
+        (await db.products.where('aliases').equals(product.externalId).first());
+      if (owner) throw new ModerationError(`Этот продукт уже есть в справочнике: «${owner.name}».`);
+    }
+    if (product.barcode) await assertBarcodeFree(product.barcode, null, db);
+    await db.products.add(product);
+    return product;
   });
 }
 
@@ -90,108 +134,6 @@ export async function restoreProducts(products: Product[], db: AppDB = defaultDb
   await db.transaction('rw', db.products, db.meta, async () => {
     await db.products.bulkPut(products);
     for (const p of products) await forgetDeletedSeed(db, p.id);
-  });
-}
-
-export interface MergeResult {
-  target: Product;
-  /** Удалённые дубликаты: нужны для отмены. */
-  removed: Product[];
-  /** Что объединение добавило к цели. Отмена вычитает именно это, а не возвращает старую копию. */
-  delta: {
-    rank: number;
-    aliases: string[];
-    barcode?: string;
-    verified: boolean;
-    lastUsedBefore?: number;
-    lastUsedAfter?: number;
-  };
-}
-
-/**
- * Объединяет дубликаты в одну запись `targetId`.
- * - Название и значения берутся у цели. Ранги складываются, дата использования — самая поздняя.
- * - Штрихкод цели сохраняется. Если его нет — берётся у первого дубликата со штрихкодом.
- * - Цель получает признак «проверено», если он был у любого дубликата.
- * - id и externalId дубликатов становятся псевдонимами цели: блюда и внешний поиск со старыми
- *   ссылками попадают в цель, и дубликат не появляется снова.
- */
-export async function mergeProducts(
-  targetId: string,
-  duplicateIds: string[],
-  db: AppDB = defaultDb,
-): Promise<MergeResult> {
-  return db.transaction('rw', db.products, db.meta, async () => {
-    const target = await db.products.get(targetId);
-    if (!target) throw new ModerationError('Основная запись не найдена.');
-    const ids = duplicateIds.filter((id) => id !== targetId);
-    const found = await db.products.bulkGet(ids);
-    const removed = found.filter((p): p is Product => p != null);
-    const next: Product = { ...target, aliases: [...(target.aliases ?? [])] };
-    const delta: MergeResult['delta'] = { rank: 0, aliases: [], verified: false };
-    const addAlias = (alias: string | undefined) => {
-      if (alias && !next.aliases!.includes(alias) && alias !== next.externalId) {
-        next.aliases!.push(alias);
-        delta.aliases.push(alias);
-      }
-    };
-    for (const dup of removed) {
-      next.rank += dup.rank;
-      delta.rank += dup.rank;
-      if ((dup.lastUsedAt ?? 0) > (next.lastUsedAt ?? 0)) {
-        delta.lastUsedBefore ??= target.lastUsedAt;
-        next.lastUsedAt = dup.lastUsedAt;
-        delta.lastUsedAfter = dup.lastUsedAt;
-      }
-      if (!next.barcode && dup.barcode) {
-        next.barcode = dup.barcode;
-        delta.barcode = dup.barcode;
-      }
-      if (dup.verified && !next.verified) {
-        next.verified = true;
-        delta.verified = true;
-      }
-      addAlias(dup.id);
-      addAlias(dup.externalId);
-      for (const a of dup.aliases ?? []) addAlias(a);
-    }
-    await db.products.put(next);
-    await db.products.bulkDelete(removed.map((p) => p.id));
-    for (const p of removed) await rememberDeletedSeed(db, p.id);
-    return { target: next, removed, delta };
-  });
-}
-
-/**
- * Отменяет объединение: возвращает дубликаты и вычитает из цели то, что добавило объединение.
- * Правки цели, сделанные после объединения (ранг, «проверено», значения), сохраняются.
- */
-export async function unmergeProducts(result: MergeResult, db: AppDB = defaultDb): Promise<void> {
-  await db.transaction('rw', db.products, db.meta, async () => {
-    const current = await db.products.get(result.target.id);
-    if (current) {
-      const next: Product = { ...current };
-      next.rank = Math.max(0, current.rank - result.delta.rank);
-      const added = new Set(result.delta.aliases);
-      const aliases = (current.aliases ?? []).filter((a) => !added.has(a));
-      if (aliases.length > 0) next.aliases = aliases;
-      else delete next.aliases;
-      if (result.delta.barcode && current.barcode === result.delta.barcode) delete next.barcode;
-      if (
-        result.delta.verified &&
-        current.verified &&
-        current.editedAt === result.target.editedAt
-      ) {
-        next.verified = false;
-      }
-      if (result.delta.lastUsedAfter != null && current.lastUsedAt === result.delta.lastUsedAfter) {
-        if (result.delta.lastUsedBefore != null) next.lastUsedAt = result.delta.lastUsedBefore;
-        else delete next.lastUsedAt;
-      }
-      await db.products.put(next);
-    }
-    await db.products.bulkPut(result.removed);
-    for (const p of result.removed) await forgetDeletedSeed(db, p.id);
   });
 }
 

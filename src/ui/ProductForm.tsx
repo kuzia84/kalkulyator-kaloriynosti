@@ -5,6 +5,8 @@ import {
   isSuspicious,
   parseDecimal,
   sanitizeDecimalInput,
+  SUSPICIOUS_MIN_KCAL_DIFF,
+  SUSPICIOUS_THRESHOLD,
   toInputString,
   type Nutrients,
 } from '../calc';
@@ -13,11 +15,20 @@ import { normalizeBarcode } from '../catalog/normalize';
 export interface ProductFormValue extends Nutrients {
   name: string;
   barcode?: string;
+  /** Есть, только если форма показывает поле «Проверено» (`verifiedField`). */
+  verified?: boolean;
 }
 
 export interface ProductFormProps {
   initial?: Partial<ProductFormValue>;
   submitLabel: string;
+  /** Показать флажок «Проверено». Начальное значение — `initial.verified`, иначе включён. */
+  verifiedField?: boolean;
+  /**
+   * Автозаполнение: новые значения поверх введённых. Форма применяет его, когда меняется `id`.
+   * Поля, которых нет в `values`, не меняются.
+   */
+  fill?: { id: number; values: Partial<ProductFormValue> };
   onSubmit: (value: ProductFormValue) => void;
   onCancel: () => void;
 }
@@ -36,7 +47,14 @@ function toText(value: number | undefined): string {
 }
 
 /** Форма продукта: название, ккал и БЖУ на 100 г, штрихкод. Нужна для ручного ввода и модерации. */
-export function ProductForm({ initial, submitLabel, onSubmit, onCancel }: ProductFormProps) {
+export function ProductForm({
+  initial,
+  submitLabel,
+  verifiedField = false,
+  fill,
+  onSubmit,
+  onCancel,
+}: ProductFormProps) {
   const [values, setValues] = useState<Record<Field, string>>({
     name: initial?.name ?? '',
     kcal: toText(initial?.kcal),
@@ -45,6 +63,7 @@ export function ProductForm({ initial, submitLabel, onSubmit, onCancel }: Produc
     carbs: toText(initial?.carbs),
     barcode: initial?.barcode ?? '',
   });
+  const [verified, setVerified] = useState(initial?.verified ?? true);
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
   const uid = useId();
   const formRef = useRef<HTMLFormElement>(null);
@@ -55,6 +74,24 @@ export function ProductForm({ initial, submitLabel, onSubmit, onCancel }: Produc
     if (failedSubmit === 0) return;
     formRef.current?.querySelector<HTMLInputElement>('[aria-invalid="true"]')?.focus();
   }, [failedSubmit]);
+
+  const fillId = fill?.id;
+  useEffect(() => {
+    if (!fill) return;
+    const { values: next } = fill;
+    setValues((v) => ({
+      name: next.name ?? v.name,
+      kcal: next.kcal != null ? toText(next.kcal) : v.kcal,
+      protein: next.protein != null ? toText(next.protein) : v.protein,
+      fat: next.fat != null ? toText(next.fat) : v.fat,
+      carbs: next.carbs != null ? toText(next.carbs) : v.carbs,
+      barcode: next.barcode ?? v.barcode,
+    }));
+    if (next.verified != null) setVerified(next.verified);
+    setErrors({});
+    // Применяется только новое заполнение: тот же `id` уже в форме.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fillId]);
   const errorId = (field: Field) => `${uid}-${field}-error`;
 
   const parsed = {
@@ -99,6 +136,7 @@ export function ProductForm({ initial, submitLabel, onSubmit, onCancel }: Produc
       fat: parsed.fat!,
       carbs: parsed.carbs!,
       ...(barcode ? { barcode } : {}),
+      ...(verifiedField ? { verified } : {}),
     });
   }
 
@@ -156,11 +194,25 @@ export function ProductForm({ initial, submitLabel, onSubmit, onCancel }: Produc
           </span>
         ) : null}
       </label>
+      {verifiedField ? (
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={verified}
+            onChange={(e) => setVerified(e.target.checked)}
+          />
+          <span>
+            Проверено
+            <span className="hint">Значения сверены с упаковкой или надёжным источником.</span>
+          </span>
+        </label>
+      ) : null}
       {suspicious ? (
         <p className="warning" role="status">
-          По формуле Б×4 + Ж×9 + У×4 получается{' '}
-          {formatNutrient('kcal', atwaterKcal(parsed as Nutrients))} ккал. Это отличается от
-          введённой калорийности больше чем на 15 %. Проверьте значения.
+          Калорийность не сходится с БЖУ. По БЖУ получается{' '}
+          {formatNutrient('kcal', atwaterKcal(parsed as Nutrients))} ккал (белки и углеводы — по 4
+          ккал на грамм, жиры — 9). Разница больше {Math.round(SUSPICIOUS_THRESHOLD * 100)} % и
+          больше {SUSPICIOUS_MIN_KCAL_DIFF} ккал. Проверьте значения.
         </p>
       ) : null}
       <div className="form-actions">
