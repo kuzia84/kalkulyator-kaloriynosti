@@ -505,7 +505,7 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
           initialName={dialog.name}
           onClose={() => setDialog(null)}
           onAdded={(p) => void onAdded(p)}
-          onExisting={onExisting}
+          onExisting={(p) => onExisting(p.name)}
         />
       ) : null}
 

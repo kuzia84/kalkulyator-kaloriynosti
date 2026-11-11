@@ -9,13 +9,22 @@ import { useSettings } from '../app/settingsContext';
 import { ProductCombobox } from './ProductCombobox';
 import { COLUMN_LABELS, SHORT_LABELS } from './columns';
 
-function BarcodeIcon() {
+function SearchIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
-      <path
-        fill="currentColor"
-        d="M3 5h2v14H3zm3 0h1v14H6zm2 0h2v14H8zm3 0h1v14h-1zm3 0h2v14h-2zm3 0h1v14h-1zm2 0h2v14h-2z"
-      />
+    <svg
+      viewBox="0 0 24 24"
+      width="22"
+      height="22"
+      aria-hidden="true"
+      focusable="false"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M15.5 15.5 21 21" />
+      <path d="M8 8v5M10.5 8v5M13 8v5" strokeWidth="1.5" />
     </svg>
   );
 }
@@ -63,12 +72,12 @@ export function IngredientRow(props: IngredientRowProps) {
           />
           <button
             type="button"
-            className="button-icon button-barcode"
-            aria-label={`Найти по штрихкоду, строка ${number}`}
-            title="Найти по штрихкоду"
+            className="button-icon button-find"
+            aria-label={`Новый продукт, строка ${number}`}
+            title="Новый продукт: вручную, по штрихкоду или поиском в сети"
             onClick={() => onBarcode(row.id)}
           >
-            <BarcodeIcon />
+            <SearchIcon />
           </button>
           <button
             type="button"

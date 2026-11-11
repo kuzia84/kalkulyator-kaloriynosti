@@ -8,15 +8,6 @@ import { formatNutrient } from '../calc';
 import { normalizeBarcode } from '../catalog/normalize';
 import type { Suggestion } from '../search/types';
 import { SOURCE_LABELS } from '../storage/schema';
-import { Modal } from './Modal';
-
-export interface BarcodeDialogProps {
-  rowLabel: string;
-  onPick: (product: Suggestion) => void;
-  /** Продукт не найден: открыть ручной ввод с этим кодом. */
-  onManual: (barcode: string) => void;
-  onClose: () => void;
-}
 
 export interface BarcodeScannerProps {
   /** Первое предложение подсказки: для чего ищется код. */
@@ -41,20 +32,6 @@ type Phase =
 
 const UNREADABLE =
   'Не удалось распознать штрихкод. Сделайте новое фото: код целиком в кадре, ровно и при хорошем свете. Или введите цифры под штрихкодом вручную.';
-
-/** Окно поиска по штрихкоду для строки блюда. */
-export function BarcodeDialog({ rowLabel, onPick, onManual, onClose }: BarcodeDialogProps) {
-  return (
-    <Modal title="Поиск по штрихкоду" onClose={onClose}>
-      <BarcodeScanner
-        context={`${rowLabel}.`}
-        pickLabel="Добавить в таблицу"
-        onPick={onPick}
-        onManual={onManual}
-      />
-    </Modal>
-  );
-}
 
 /**
  * Поиск продукта по штрихкоду: фото, камера или цифры вручную.

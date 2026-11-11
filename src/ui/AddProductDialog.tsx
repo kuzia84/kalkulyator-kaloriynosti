@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { addProduct, findByExternalId } from '../catalog/moderation';
+import { db } from '../storage/db';
 import type { Suggestion } from '../search/types';
 import { SOURCE_LABELS, type Product, type ProductSource } from '../storage/schema';
 import { BarcodeScanner } from './BarcodeDialog';
@@ -12,8 +13,14 @@ export interface AddProductDialogProps {
   initialName: string;
   onClose: () => void;
   onAdded: (product: Product) => void;
-  /** Найденный по штрихкоду продукт уже есть в справочнике. */
-  onExisting: (name: string) => void;
+  /** Найденный продукт уже есть в справочнике. */
+  onExisting: (product: Product) => void;
+  /** Подпись кнопки сохранения формы. */
+  submitLabel?: string;
+  /** Подпись кнопки под найденным по штрихкоду продуктом, который уже есть в справочнике. */
+  existingLabel?: string;
+  /** Подсказка в режиме «По штрихкоду»: что будет с найденным продуктом. */
+  barcodeHint?: string;
 }
 
 type Mode = 'manual' | 'barcode' | 'web';
@@ -33,14 +40,18 @@ interface Origin {
 }
 
 /**
- * Окно «Новый продукт» справочника. Форму можно заполнить вручную, по штрихкоду
- * или поиском в сети. Автозаполнение меняет поля формы, а сохраняет запись человек.
+ * Окно «Новый продукт»: общее для справочника и строки калькулятора. Форму можно заполнить
+ * вручную, по штрихкоду или поиском в сети. Автозаполнение меняет поля формы,
+ * а сохраняет запись человек.
  */
 export function AddProductDialog({
   initialName,
   onClose,
   onAdded,
   onExisting,
+  submitLabel = 'Добавить',
+  existingLabel = 'Показать в справочнике',
+  barcodeHint = 'Найдите продукт по коду, и форма заполнится сама.',
 }: AddProductDialogProps) {
   const [mode, setMode] = useState<Mode>('manual');
   const [fill, setFill] = useState<{ id: number; values: Partial<ProductFormValue> }>();
@@ -51,13 +62,16 @@ export function AddProductDialog({
 
   async function fillFrom(product: Suggestion) {
     if (product.productId) {
-      onExisting(product.name);
-      return;
+      const existing = await db.products.get(product.productId);
+      if (existing) {
+        onExisting(existing);
+        return;
+      }
     }
     // Продукт из сети уже сохраняли: показать его запись, а не заполнять форму дубликатом.
     const known = product.externalId ? await findByExternalId(product.externalId) : undefined;
     if (known) {
-      onExisting(known.name);
+      onExisting(known);
       return;
     }
     setFill((f) => ({
@@ -127,8 +141,8 @@ export function AddProductDialog({
 
       {mode === 'barcode' ? (
         <BarcodeScanner
-          context="Найдите продукт по коду, и форма заполнится сама."
-          pickLabel={(p) => (p.productId ? 'Показать в справочнике' : 'Заполнить форму')}
+          context={barcodeHint}
+          pickLabel={(p) => (p.productId ? existingLabel : 'Заполнить форму')}
           onPick={(p) => void fillFrom(p)}
           onManual={fillBarcode}
         />
@@ -153,7 +167,7 @@ export function AddProductDialog({
         ) : null}
         <ProductForm
           initial={{ name: initialName }}
-          submitLabel="Добавить"
+          submitLabel={submitLabel}
           verifiedField
           {...(fill ? { fill } : {})}
           onCancel={onClose}
