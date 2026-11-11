@@ -38,8 +38,28 @@ test('основной сценарий: продукт, вес, вес гото
   await expect(page.getByLabel('Калорийность, ккал, на 100 г готового блюда')).toHaveText('110');
   await expect(page.getByLabel('Белки, г, на 100 г готового блюда')).toHaveText('4,5');
 
-  // Черновик пишется с паузой: ждём записи и перезагружаем страницу.
-  await page.waitForTimeout(600);
+  // Черновик пишется с паузой: ждём, пока запись появится в IndexedDB, и перезагружаем страницу.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<string | null>((resolve) => {
+            const open = indexedDB.open('kalkulyator-kaloriynosti');
+            open.onerror = () => resolve(null);
+            open.onsuccess = () => {
+              const get = open.result.transaction('drafts').objectStore('drafts').get('current');
+              get.onsuccess = () => {
+                resolve(
+                  (get.result as { cookedWeight?: string } | undefined)?.cookedWeight ?? null,
+                );
+                open.result.close();
+              };
+              get.onerror = () => resolve(null);
+            };
+          }),
+      ),
+    )
+    .toBe('560');
   await page.reload();
   await expect(page.getByRole('combobox', { name: 'Ингредиент 1' })).toHaveValue(
     'Гречневая крупа ядрица',

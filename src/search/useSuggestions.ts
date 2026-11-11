@@ -41,13 +41,14 @@ export function useSuggestions(
   settings: Settings,
   online: boolean,
 ): SuggestionsState {
-  const [state, setState] = useState<SuggestionsState>({ items: [], loading: false });
   const limit = settings.suggestionsLimit;
   const sources = activeSources(settings);
   // Поиск зависит только от этих настроек. Смена темы не перезапускает запросы.
   const sourcesKey = sources.join(',');
   const usdaKey = settings.usdaApiKey;
-  const wantsExternal = online && sources.length > 0 && query.trim().length >= MIN_EXTERNAL_QUERY;
+  const trimmed = query.trim();
+  const wantsExternal =
+    enabled && online && sources.length > 0 && trimmed.length >= MIN_EXTERNAL_QUERY;
   const searchSettings = useMemo<Settings>(
     () => ({
       ...DEFAULT_SETTINGS,
@@ -59,65 +60,82 @@ export function useSuggestions(
     [limit, sourcesKey, usdaKey],
   );
 
+  // Справочник ищется при любом тексте, даже при закрытом списке: запрос дешёвый, а после
+  // Escape стрелка вниз сразу открывает готовый список.
+  const [local, setLocal] = useState<{ query: string; items: Suggestion[] } | null>(null);
   useEffect(() => {
-    if (query.trim() === '') {
-      setState({ items: [], loading: false });
+    if (trimmed === '') {
+      setLocal(null);
       return;
     }
-    // Список закрыт (Escape, уход фокуса): прежние подсказки остаются, чтобы стрелка вниз
-    // сразу открыла их и Enter выбрал первый пункт.
-    if (!enabled) {
-      setState((s) => (s.loading ? { ...s, loading: false } : s));
-      return;
-    }
-    const controller = new AbortController();
     let cancelled = false;
-    let local: Suggestion[] = [];
-    setState((s) => ({ ...s, loading: true }));
-
-    const localDone = searchLocal(query, limit)
+    searchLocal(query, limit)
       .then((products) => {
-        local = products.map(suggestionFromProduct);
-        if (!cancelled) setState({ items: local, loading: wantsExternal });
+        if (!cancelled) setLocal({ query, items: products.map(suggestionFromProduct) });
       })
       .catch(() => {
-        if (!cancelled) setState({ items: [], loading: wantsExternal });
+        if (!cancelled) setLocal({ query, items: [] });
       });
-
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    if (wantsExternal) {
-      timer = setTimeout(() => {
-        Promise.all([searchExternal(query, searchSettings, controller.signal), localDone])
-          .then(([external]) => {
-            if (cancelled) return;
-            const failed = external.failed.map((s) => SOURCE_LABELS[s]).join(', ');
-            setState({
-              items: mergeSuggestions(local, external.products).slice(0, local.length + limit),
-              loading: false,
-              ...(failed ? { notice: `Не ответил: ${failed}. Показан справочник.` } : {}),
-            });
-          })
-          .catch(() => {
-            // Отмена: пользователь ввёл следующую букву, ответ больше не нужен.
-            if (cancelled || controller.signal.aborted) return;
-            setState({
-              items: local,
-              loading: false,
-              notice: 'Внешний поиск не ответил. Показан справочник.',
-            });
-          });
-      }, EXTERNAL_DEBOUNCE_MS);
-    }
-
     return () => {
       cancelled = true;
+    };
+  }, [query, trimmed, limit]);
+
+  // Внешние источники — только при открытом списке, с паузой после ввода и отменой.
+  const [external, setExternal] = useState<{
+    query: string;
+    products: ExternalProduct[];
+    notice?: string;
+  } | null>(null);
+  useEffect(() => {
+    if (!wantsExternal) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      searchExternal(query, searchSettings, controller.signal)
+        .then((result) => {
+          const failed = result.failed.map((src) => SOURCE_LABELS[src]).join(', ');
+          setExternal({
+            query,
+            products: result.products,
+            ...(failed ? { notice: `Не ответил: ${failed}. Показан справочник.` } : {}),
+          });
+        })
+        .catch(() => {
+          // Отмена: пользователь ввёл следующую букву, ответ больше не нужен.
+          if (controller.signal.aborted) return;
+          setExternal({
+            query,
+            products: [],
+            notice: 'Внешний поиск не ответил. Показан справочник.',
+          });
+        });
+    }, EXTERNAL_DEBOUNCE_MS);
+    return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query, enabled, limit, wantsExternal, searchSettings]);
+  }, [query, wantsExternal, searchSettings]);
 
-  if (!online && enabled && query.trim() !== '') {
-    return { ...state, notice: 'Нет интернета: поиск только по справочнику.' };
-  }
-  return state;
+  const localItems = local?.query === query ? local.items : null;
+  const externalForQuery = wantsExternal && external?.query === query ? external : null;
+  const items = useMemo(
+    () =>
+      localItems == null
+        ? []
+        : externalForQuery
+          ? mergeSuggestions(localItems, externalForQuery.products).slice(
+              0,
+              localItems.length + limit,
+            )
+          : localItems,
+    [localItems, externalForQuery, limit],
+  );
+
+  if (trimmed === '') return EMPTY;
+  const loading = localItems == null || (wantsExternal && externalForQuery == null);
+  const notice =
+    !online && enabled ? 'Нет интернета: поиск только по справочнику.' : externalForQuery?.notice;
+  return { items, loading, ...(notice ? { notice } : {}) };
 }
+
+const EMPTY: SuggestionsState = { items: [], loading: false };

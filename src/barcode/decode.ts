@@ -73,6 +73,10 @@ export function getZxingReader(): Promise<ZxingReader> {
         return new browser.BrowserMultiFormatReader(hints) as unknown as ZxingReader;
       },
     );
+    // Неудачная загрузка (нет сети, старая версия) не запоминается: следующая попытка повторит её.
+    zxingPromise.catch(() => {
+      zxingPromise = null;
+    });
   }
   return zxingPromise;
 }
