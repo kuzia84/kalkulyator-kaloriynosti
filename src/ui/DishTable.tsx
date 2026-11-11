@@ -18,7 +18,6 @@ import { IngredientRow } from './IngredientRow';
 export interface DishTableProps {
   state: DishState;
   dispatch: (action: DishAction) => void;
-  suggestionsLimit: number;
   onRemoveRow: (rowId: string) => void;
   onManual: (rowId: string, name: string) => void;
 }
@@ -37,13 +36,7 @@ function NutrientCells({ values, label }: { values: Nutrients | null; label: str
   );
 }
 
-export function DishTable({
-  state,
-  dispatch,
-  suggestionsLimit,
-  onRemoveRow,
-  onManual,
-}: DishTableProps) {
+export function DishTable({ state, dispatch, onRemoveRow, onManual }: DishTableProps) {
   const cookedHintId = useId();
   const total = totals(state.rows);
   const hasWeight = total.weight > 0;
@@ -77,7 +70,6 @@ export function DishTable({
             key={row.id}
             row={row}
             index={index}
-            suggestionsLimit={suggestionsLimit}
             onNameChange={onNameChange}
             onPick={onPick}
             onWeightChange={onWeightChange}

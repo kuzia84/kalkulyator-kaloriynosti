@@ -4,13 +4,14 @@ import type { PickedProduct } from '../dish/state';
 import type { DishRow } from '../storage/schema';
 import type { Suggestion } from '../search/types';
 import { useSuggestions } from '../search/useSuggestions';
+import { useOnline } from '../app/useOnline';
+import { useSettings } from '../app/settingsContext';
 import { ProductCombobox } from './ProductCombobox';
 import { COLUMN_LABELS, SHORT_LABELS } from './columns';
 
 export interface IngredientRowProps {
   row: DishRow;
   index: number;
-  suggestionsLimit: number;
   onNameChange: (rowId: string, name: string) => void;
   onPick: (rowId: string, product: PickedProduct) => void;
   onWeightChange: (rowId: string, weight: string) => void;
@@ -21,12 +22,13 @@ export interface IngredientRowProps {
 const NO_ITEMS: Suggestion[] = [];
 
 export function IngredientRow(props: IngredientRowProps) {
-  const { row, index, suggestionsLimit, onNameChange, onPick, onWeightChange, onRemove, onManual } =
-    props;
+  const { row, index, onNameChange, onPick, onWeightChange, onRemove, onManual } = props;
   const [open, setOpen] = useState(false);
   // Подсказки ищутся, только пока продукт не выбран: выбранное название — не запрос.
   const query = row.per100 ? '' : row.name;
-  const { items, loading } = useSuggestions(query, open, suggestionsLimit);
+  const { settings } = useSettings();
+  const online = useOnline();
+  const { items, loading, notice } = useSuggestions(query, open, settings, online);
   const values = rowNutrients(row);
   const number = index + 1;
   const onOpenChange = useCallback((v: boolean) => setOpen(v), []);
@@ -41,6 +43,7 @@ export function IngredientRow(props: IngredientRowProps) {
             items={row.per100 ? NO_ITEMS : items}
             loading={!row.per100 && loading}
             selected={!!row.per100}
+            {...(!row.per100 && notice ? { notice } : {})}
             onChange={(text) => onNameChange(row.id, text)}
             onPick={(s) => onPick(row.id, s)}
             onManual={(text) => onManual(row.id, text)}

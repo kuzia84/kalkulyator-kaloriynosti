@@ -82,10 +82,19 @@ export interface DraftRecord extends Dish {
   recipeId?: string;
 }
 
+/** Продукт из внешнего источника в кэше поиска. Значения на 100 г. */
+export interface ExternalProductRecord extends Nutrients {
+  source: ExternalSource;
+  externalId: string;
+  name: string;
+  barcode?: string;
+  detail?: string;
+}
+
 export interface SearchCacheRecord {
   key: string;
   createdAt: number;
-  products: Omit<Product, 'id' | 'rank' | 'verified'>[];
+  products: ExternalProductRecord[];
 }
 
 /** Служебные данные. Запись 'seed' хранит версию стартового набора и удалённые записи набора. */
