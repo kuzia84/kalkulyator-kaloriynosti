@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { DEFAULT_SETTINGS, type Settings } from '../storage/schema';
 import { loadSettings, saveSettings } from '../storage/settings';
-import { rememberTheme } from './theme';
+import { rememberSkin, rememberTheme } from './theme';
 
 interface SettingsContextValue {
   settings: Settings;
@@ -37,6 +37,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         if (!cancelled) {
           current.current = s;
           rememberTheme(s.theme);
+          rememberSkin(s.skin);
           setSettings(s);
         }
       })
@@ -54,6 +55,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     current.current = next;
     setSettings(next);
     rememberTheme(next.theme);
+    rememberSkin(next.skin);
     saveSettings(next).catch((error: unknown) =>
       console.error('Не удалось сохранить настройки', error),
     );

@@ -1,8 +1,15 @@
 import { db as defaultDb, type AppDB } from './db';
-import { DEFAULT_SETTINGS, type ExternalSource, type Settings, type Theme } from './schema';
+import {
+  DEFAULT_SETTINGS,
+  type ExternalSource,
+  type Settings,
+  type Skin,
+  type Theme,
+} from './schema';
 
 const SOURCES: ExternalSource[] = ['off', 'usda'];
 const THEMES: Theme[] = ['system', 'light', 'dark'];
+const SKINS: Skin[] = ['glass', 'label'];
 
 export const SUGGESTIONS_MIN = 5;
 export const SUGGESTIONS_MAX = 50;
@@ -27,6 +34,7 @@ export function sanitizeSettings(raw: Partial<Settings> | undefined): Settings {
     enabledSources: [...new Set(enabled)],
     usdaApiKey: typeof s.usdaApiKey === 'string' ? s.usdaApiKey.trim() : '',
     theme: THEMES.includes(s.theme as Theme) ? (s.theme as Theme) : DEFAULT_SETTINGS.theme,
+    skin: SKINS.includes(s.skin as Skin) ? (s.skin as Skin) : DEFAULT_SETTINGS.skin,
   };
 }
 

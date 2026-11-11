@@ -15,6 +15,9 @@
       try {
         var t = localStorage.getItem('kk-theme');
         if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+        // Оформление. Ключ — SKIN_STORAGE_KEY. «Стекло» — без атрибута.
+        if (localStorage.getItem('kk-skin') === 'label')
+          document.documentElement.setAttribute('data-skin', 'label');
       } catch (e) {}
     </script>
     <title>Калькулятор калорийности блюда</title>

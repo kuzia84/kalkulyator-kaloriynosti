@@ -122,6 +122,7 @@ describe('экспорт и импорт JSON', () => {
       enabledSources: ['off', 'usda'],
       usdaApiKey: 'secret',
       theme: 'system',
+      skin: 'glass',
     });
     expect(JSON.stringify(await exportBackup())).not.toContain('secret');
   });

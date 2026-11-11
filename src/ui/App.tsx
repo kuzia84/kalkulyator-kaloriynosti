@@ -1,4 +1,4 @@
-import { useEffect, useRef, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { ROUTES, useRoute, type Route } from '../app/router';
 import { SettingsProvider, useSettings } from '../app/settingsContext';
 import { UpdateProvider, useAppUpdate } from '../app/updateContext';
@@ -6,6 +6,8 @@ import { applyTheme } from '../app/theme';
 import { useOnline } from '../app/useOnline';
 import { useDish } from '../dish/useDish';
 import { CalculatorPage } from './CalculatorPage';
+import { HeaderActionsContext } from './HeaderActions';
+import { Icon } from './icons';
 import { ModerationPage } from './ModerationPage';
 import { RecipesPage } from './RecipesPage';
 import { SettingsPage } from './SettingsPage';
@@ -15,6 +17,40 @@ import './styles.css';
 /** Разделы, которые уже есть в приложении. */
 const PAGES: Route[] = ['calculator', 'recipes', 'moderation', 'settings'];
 
+/** Подписи вкладок на телефоне: полные названия не помещаются в четверть ширины экрана. */
+const SHORT_NAV_LABELS: Record<Route, string> = {
+  calculator: 'Блюдо',
+  recipes: 'Рецепты',
+  moderation: 'Продукты',
+  settings: 'Настройки',
+};
+
+/** Иконки разделов: на телефоне навигация — панель вкладок внизу экрана. */
+function NavIcon({ route }: { route: Route }) {
+  return (
+    <Icon className="app-nav-icon icon" size={24}>
+      {route === 'calculator' ? (
+        <>
+          <rect x="5" y="3" width="14" height="18" rx="3" />
+          <path d="M8.5 7.5h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01" />
+        </>
+      ) : route === 'recipes' ? (
+        <>
+          <path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4Z" />
+          <path d="M5 16a4 4 0 0 1 4-4h10" />
+        </>
+      ) : route === 'moderation' ? (
+        <path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
+      ) : (
+        <>
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" />
+        </>
+      )}
+    </Icon>
+  );
+}
+
 function Shell() {
   const route = useRoute();
   const online = useOnline();
@@ -23,6 +59,7 @@ function Shell() {
   const undo = useUndo();
   const { updateAvailable } = useAppUpdate();
   const page = PAGES.includes(route) ? route : 'calculator';
+  const [actionsSlot, setActionsSlot] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => applyTheme(settings.theme), [settings.theme]);
 
@@ -74,7 +111,11 @@ function Shell() {
         <nav className="app-nav" aria-label="Разделы">
           {ROUTES.filter((r) => PAGES.includes(r.route)).map((r) => (
             <a key={r.route} href={r.hash} aria-current={page === r.route ? 'page' : undefined}>
-              {r.label}
+              <NavIcon route={r.route} />
+              <span className="app-nav-label">{r.label}</span>
+              <span className="app-nav-short" aria-hidden="true">
+                {SHORT_NAV_LABELS[r.route]}
+              </span>
               {r.route === 'settings' && updateAvailable ? (
                 <>
                   <span className="update-dot" aria-hidden="true">
@@ -86,35 +127,38 @@ function Shell() {
             </a>
           ))}
         </nav>
+        <div className="app-actions" ref={setActionsSlot} />
       </header>
       {!online ? (
         <p className="banner banner-offline" role="status">
           Нет интернета. Поиск идёт только по справочнику на устройстве, расчёт работает как обычно.
         </p>
       ) : null}
-      <main id="main-content" ref={mainRef} className="app-main" tabIndex={-1}>
-        {!ready ? (
-          <p className="hint" role="status">
-            Загружаем данные…
-          </p>
-        ) : page === 'settings' ? (
-          <SettingsPage />
-        ) : page === 'recipes' ? (
-          <RecipesPage
-            current={dish.state}
-            dispatch={dish.dispatch}
-            offerUndo={undo.offer}
-            dismissUndo={undo.dismiss}
-            onOpened={() => {
-              window.location.hash = '#/';
-            }}
-          />
-        ) : page === 'moderation' ? (
-          <ModerationPage offerUndo={undo.offer} />
-        ) : (
-          <CalculatorPage dish={dish} offerUndo={undo.offer} dismissUndo={undo.dismiss} />
-        )}
-      </main>
+      <HeaderActionsContext.Provider value={actionsSlot}>
+        <main id="main-content" ref={mainRef} className="app-main" tabIndex={-1}>
+          {!ready ? (
+            <p className="hint" role="status">
+              Загружаем данные…
+            </p>
+          ) : page === 'settings' ? (
+            <SettingsPage />
+          ) : page === 'recipes' ? (
+            <RecipesPage
+              current={dish.state}
+              dispatch={dish.dispatch}
+              offerUndo={undo.offer}
+              dismissUndo={undo.dismiss}
+              onOpened={() => {
+                window.location.hash = '#/';
+              }}
+            />
+          ) : page === 'moderation' ? (
+            <ModerationPage offerUndo={undo.offer} />
+          ) : (
+            <CalculatorPage dish={dish} offerUndo={undo.offer} dismissUndo={undo.dismiss} />
+          )}
+        </main>
+      </HeaderActionsContext.Provider>
       <UndoToast entry={undo.entry} onDismiss={undo.dismiss} />
     </div>
   );

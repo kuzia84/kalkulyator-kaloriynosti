@@ -124,28 +124,45 @@ for (const theme of ['light', 'dark'] as const) {
   }) => {
     await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
     const ratios = await page.evaluate(() => {
-      const lum = (c: string) => {
-        const [r, g, b] = (c.match(/[\d.]+/g) ?? []).slice(0, 3).map((v) => {
-          const x = Number(v) / 255;
-          return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
-        });
-        return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+      type Rgba = [number, number, number, number];
+      const parse = (c: string): Rgba => {
+        const [r = 0, g = 0, b = 0, a = 1] = (c.match(/[\d.]+/g) ?? []).map(Number);
+        return [r, g, b, a];
       };
-      const contrast = (a: string, b: string) => {
+      // Полупрозрачный цвет (стекло) смешиваем с непрозрачным цветом под ним.
+      const over = (top: Rgba, under: Rgba): Rgba => [
+        top[0] * top[3] + under[0] * (1 - top[3]),
+        top[1] * top[3] + under[1] * (1 - top[3]),
+        top[2] * top[3] + under[2] * (1 - top[3]),
+        1,
+      ];
+      const lum = ([r, g, b]: Rgba) => {
+        const [x, y, z] = [r, g, b].map((v) => {
+          const n = v / 255;
+          return n <= 0.03928 ? n / 12.92 : ((n + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * x! + 0.7152 * y! + 0.0722 * z!;
+      };
+      const contrast = (a: Rgba, b: Rgba) => {
         const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
         return (x! + 0.05) / (y! + 0.05);
       };
-      const border = getComputedStyle(
-        document.querySelector<HTMLElement>('.input')!,
-      ).borderTopColor;
-      // Рамку сравниваем с цветами вокруг поля: фон страницы, карточки и шапки таблицы.
-      return ['--bg', '--surface', '--surface-2'].map((token) => {
+      const color = (token: string) => {
         const probe = document.createElement('div');
         probe.style.background = `var(${token})`;
         document.body.append(probe);
-        const bg = getComputedStyle(probe).backgroundColor;
+        const value = getComputedStyle(probe).backgroundColor;
         probe.remove();
-        return contrast(border, bg);
+        return parse(value);
+      };
+      const page = color('--bg');
+      const border = parse(
+        getComputedStyle(document.querySelector<HTMLElement>('.input')!).borderTopColor,
+      );
+      // Рамку сравниваем с цветами вокруг поля: фон страницы, карточки и вложенной плашки.
+      return ['--bg', '--surface', '--surface-2'].map((token) => {
+        const bg = over(color(token), page);
+        return contrast(over(border, bg), bg);
       });
     });
     for (const r of ratios) expect(r).toBeGreaterThanOrEqual(3);
@@ -173,7 +190,7 @@ test('правка рецепта: новый вес пересчитывает 
   await expect(page.getByText('Рецепт сохранён в «Мои рецепты».')).toBeVisible();
 
   await page.getByRole('link', { name: 'Мои рецепты' }).click();
-  await expect(page.getByText(/308 ккал на 100 г/)).toBeVisible();
+  await expect(page.getByText('308 ккал / 100 г', { exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Изменить рецепт «Гречка»' }).click();
   await expect(page.getByRole('heading', { name: 'Правка рецепта' })).toBeVisible();
 
@@ -184,5 +201,8 @@ test('правка рецепта: новый вес пересчитывает 
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
 
   await expect(page.getByText('Рецепт «Гречка» обновлён.')).toBeVisible();
-  await expect(page.getByText(/2 ингр\. · вес 200 г · 154 ккал на 100 г/)).toBeVisible();
+  const card = page.getByRole('listitem').filter({ hasText: 'Гречка' });
+  await expect(card.getByText('154 ккал / 100 г', { exact: true })).toBeVisible();
+  await expect(card.getByText('2 ингредиента', { exact: true })).toBeVisible();
+  await expect(card.getByText('200 г', { exact: true })).toBeVisible();
 });

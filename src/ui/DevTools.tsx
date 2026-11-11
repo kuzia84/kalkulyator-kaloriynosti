@@ -16,8 +16,8 @@ export function DevTools() {
   }
 
   return (
-    <fieldset className="card">
-      <legend>Для разработки</legend>
+    <fieldset className="group">
+      <legend className="group-label">Для разработки</legend>
       <p className="hint">
         Блок виден только в режиме разработки. Повторное нажатие заменяет тестовые рецепты, а не
         добавляет копии.

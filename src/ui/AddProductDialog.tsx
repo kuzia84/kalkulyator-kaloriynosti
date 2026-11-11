@@ -21,9 +21,11 @@ export interface AddProductDialogProps {
   existingLabel?: string;
   /** Подсказка в режиме «По штрихкоду»: что будет с найденным продуктом. */
   barcodeHint?: string;
+  /** С какого способа заполнения открыть окно. Кнопка штрихкода открывает сразу «По штрихкоду». */
+  initialMode?: Mode;
 }
 
-type Mode = 'manual' | 'barcode' | 'web';
+export type Mode = 'manual' | 'barcode' | 'web';
 
 const MODES: { mode: Mode; label: string }[] = [
   { mode: 'manual', label: 'Вручную' },
@@ -52,8 +54,9 @@ export function AddProductDialog({
   submitLabel = 'Добавить',
   existingLabel = 'Показать в справочнике',
   barcodeHint = 'Найдите продукт по коду, и форма заполнится сама.',
+  initialMode = 'manual',
 }: AddProductDialogProps) {
-  const [mode, setMode] = useState<Mode>('manual');
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [fill, setFill] = useState<{ id: number; values: Partial<ProductFormValue> }>();
   const [origin, setOrigin] = useState<Origin | null>(null);
   const [error, setError] = useState('');

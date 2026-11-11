@@ -122,6 +122,7 @@ export function ProductCombobox(props: ProductComboboxProps) {
         type="text"
         role="combobox"
         className="input input-name"
+        data-selected={selected ? 'true' : undefined}
         aria-label={label}
         aria-autocomplete="list"
         aria-expanded={expanded}
