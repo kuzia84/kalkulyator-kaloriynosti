@@ -8,21 +8,26 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { hasWaitingWorker, registerServiceWorker, type ServiceWorkerHandle } from './sw';
+import { registerServiceWorker, type ServiceWorkerHandle } from './sw';
 import {
+  checkRemoteVersion,
   CHECK_TICK_MS,
   clearAppCache,
   CURRENT_VERSION,
-  fetchRemoteVersion,
+  freshReloadUrl,
   isNewer,
   readStoredCheck,
   shouldCheck,
   writeStoredCheck,
   type RemoteVersion,
 } from './updates';
+import { useOnline } from './useOnline';
 
-export type UpdateStatus =
-  'idle' | 'checking' | 'up-to-date' | 'available' | 'offline' | 'updating';
+/**
+ * Состояние проверки. «Есть обновление» — не состояние, а вывод из `remote` и service worker:
+ * см. `updateAvailable`.
+ */
+export type UpdateStatus = 'idle' | 'checking' | 'checked' | 'offline' | 'invalid' | 'updating';
 
 interface UpdateContextValue {
   status: UpdateStatus;
@@ -47,9 +52,9 @@ export interface UpdateProviderProps {
 
 /**
  * Следит за версией приложения.
- * - При запуске и раз в час смотрит, прошли ли сутки с последней проверки; если да — проверяет.
+ * - При запуске, раз в час и при появлении сети смотрит, прошли ли сутки с последней проверки.
  * - Проверка: version.json с сервера в обход кэша и проверка service worker.
- * - Новая версия — если другая сборка на сервере или новый service worker ждёт активации.
+ * - Новая версия — если на сервере более новая сборка или новый service worker ждёт активации.
  */
 export function UpdateProvider({
   children,
@@ -58,6 +63,7 @@ export function UpdateProvider({
   now = Date.now,
 }: UpdateProviderProps) {
   const stored = useMemo(readStoredCheck, []);
+  const online = useOnline();
   const [remote, setRemote] = useState<RemoteVersion | null>(stored?.remote ?? null);
   const [lastCheckAt, setLastCheckAt] = useState<number | null>(stored?.lastCheckAt ?? null);
   const [workerWaiting, setWorkerWaiting] = useState(false);
@@ -79,63 +85,68 @@ export function UpdateProvider({
     setStatus('checking');
     try {
       await sw.current?.checkForUpdate();
-      const found = await fetchRemoteVersion(baseUrl, fetchImpl ?? fetch, now());
-      const at = now();
-      if (found) {
-        setRemote(found);
+      if (sw.current?.hasWaiting()) setWorkerWaiting(true);
+      const result = await checkRemoteVersion(baseUrl, fetchImpl ?? fetch, now());
+      if (result.ok) {
+        const at = now();
+        setRemote(result.remote);
         setLastCheckAt(at);
-        writeStoredCheck({ lastCheckAt: at, remote: found });
-        setStatus(isNewer(found, CURRENT_VERSION) ? 'available' : 'up-to-date');
+        writeStoredCheck({ lastCheckAt: at, remote: result.remote });
+        setStatus('checked');
       } else {
         // Время не записывается: без ответа сервера проверка повторится при следующей возможности.
-        setStatus('offline');
+        setStatus(result.reason === 'network' ? 'offline' : 'invalid');
       }
     } finally {
       checking.current = false;
     }
   }, [baseUrl, fetchImpl, now]);
 
-  // Проверка раз в сутки: при запуске и по часовому таймеру для долго открытой вкладки.
+  // Проверка раз в сутки: при запуске, по часовому таймеру и сразу после появления сети.
   useEffect(() => {
+    if (!online) return;
     const tick = () => {
-      // Без сети проверять нечего: проверка пройдёт при следующем тике после подключения.
-      if (navigator.onLine === false) return;
       if (shouldCheck(lastCheckRef.current, now())) void checkNow();
     };
     tick();
     const timer = setInterval(tick, CHECK_TICK_MS);
     return () => clearInterval(timer);
-  }, [checkNow, now]);
+  }, [online, checkNow, now]);
 
   const resetCache = useCallback(async () => {
+    // Без сети сброс кэша оставил бы приложение без файлов: страница не открылась бы.
+    if (navigator.onLine === false) {
+      setStatus('offline');
+      return;
+    }
     setStatus('updating');
     try {
       await clearAppCache();
-    } finally {
-      window.location.reload();
+    } catch {
+      // Кэш не удалился целиком — перезагрузка всё равно возьмёт свежие файлы с сервера.
     }
-  }, []);
+    window.location.replace(freshReloadUrl(window.location, now()));
+  }, [now]);
 
   const applyUpdate = useCallback(async () => {
-    setStatus('updating');
-    if (workerWaiting || (await hasWaitingWorker())) {
-      await sw.current?.activateWaiting();
+    if (navigator.onLine === false && !sw.current?.hasWaiting()) {
+      setStatus('offline');
       return;
+    }
+    setStatus('updating');
+    try {
+      // Новая версия уже скачана: включить её. Страницу перезагрузит sw.ts.
+      if (await sw.current?.activateWaiting()) return;
+    } catch {
+      // Не вышло включить новую версию — остаётся путь через сброс кэша.
     }
     // Service worker ещё не скачал новую версию (или его нет): чистый кэш и перезагрузка.
     await resetCache();
-  }, [workerWaiting, resetCache]);
-
-  const effectiveStatus: UpdateStatus =
-    status === 'checking' || status === 'updating' || status === 'offline'
-      ? status
-      : updateAvailable
-        ? 'available'
-        : status;
+  }, [resetCache]);
 
   const value = useMemo<UpdateContextValue>(
     () => ({
-      status: effectiveStatus,
+      status,
       current: CURRENT_VERSION,
       remote,
       lastCheckAt,
@@ -144,7 +155,7 @@ export function UpdateProvider({
       applyUpdate,
       resetCache,
     }),
-    [effectiveStatus, remote, lastCheckAt, updateAvailable, checkNow, applyUpdate, resetCache],
+    [status, remote, lastCheckAt, updateAvailable, checkNow, applyUpdate, resetCache],
   );
 
   return <UpdateContext.Provider value={value}>{children}</UpdateContext.Provider>;

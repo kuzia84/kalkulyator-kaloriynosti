@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  checkRemoteVersion,
+  freshReloadUrl,
   CHECK_INTERVAL_MS,
   fetchRemoteVersion,
   isNewer,
@@ -97,5 +99,27 @@ describe('запомненная проверка', () => {
   it('битая запись — как будто проверки не было', () => {
     localStorage.setItem('kk-update-check', '{oops');
     expect(readStoredCheck()).toBeNull();
+  });
+});
+
+describe('checkRemoteVersion', () => {
+  it('различает «нет связи» и «плохой ответ»', async () => {
+    expect(
+      await checkRemoteVersion('/', vi.fn<typeof fetch>().mockRejectedValue(new TypeError('x'))),
+    ).toEqual({ ok: false, reason: 'network' });
+    expect(
+      await checkRemoteVersion(
+        '/',
+        vi.fn<typeof fetch>().mockResolvedValue(new Response('', { status: 404 })),
+      ),
+    ).toEqual({ ok: false, reason: 'invalid' });
+  });
+});
+
+describe('freshReloadUrl', () => {
+  it('новый параметр запроса, раздел сохраняется', () => {
+    expect(freshReloadUrl({ pathname: '/app/', hash: '#/settings' }, 7)).toBe(
+      '/app/?r=7#/settings',
+    );
   });
 });

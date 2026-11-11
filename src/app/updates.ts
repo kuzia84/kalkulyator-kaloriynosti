@@ -45,23 +45,52 @@ function isRemoteVersion(v: unknown): v is RemoteVersion {
   );
 }
 
+export type RemoteCheck =
+  { ok: true; remote: RemoteVersion } | { ok: false; reason: 'network' | 'invalid' };
+
 /**
  * Спрашивает у сервера version.json в обход всех кэшей.
- * Нет сети, ответ не 200 или файл битый — `null`, без исключения.
+ * `network` — нет связи. `invalid` — сервер ответил, но не 200 или файл битый.
  */
+export async function checkRemoteVersion(
+  baseUrl: string,
+  fetchImpl: typeof fetch = fetch,
+  now = Date.now(),
+): Promise<RemoteCheck> {
+  let res: Response;
+  try {
+    res = await fetchImpl(`${baseUrl}version.json?t=${now}`, { cache: 'no-store' });
+  } catch {
+    return { ok: false, reason: 'network' };
+  }
+  if (!res.ok) return { ok: false, reason: 'invalid' };
+  try {
+    const data: unknown = await res.json();
+    return isRemoteVersion(data) ? { ok: true, remote: data } : { ok: false, reason: 'invalid' };
+  } catch {
+    return { ok: false, reason: 'invalid' };
+  }
+}
+
+/** То же, что checkRemoteVersion, но без причины ошибки: версия или `null`. */
 export async function fetchRemoteVersion(
   baseUrl: string,
   fetchImpl: typeof fetch = fetch,
   now = Date.now(),
 ): Promise<RemoteVersion | null> {
-  try {
-    const res = await fetchImpl(`${baseUrl}version.json?t=${now}`, { cache: 'no-store' });
-    if (!res.ok) return null;
-    const data: unknown = await res.json();
-    return isRemoteVersion(data) ? data : null;
-  } catch {
-    return null;
-  }
+  const result = await checkRemoteVersion(baseUrl, fetchImpl, now);
+  return result.ok ? result.remote : null;
+}
+
+/**
+ * Адрес для перезагрузки в обход HTTP-кэша: новый параметр запроса — новый ключ кэша
+ * для index.html. Hash (раздел приложения) сохраняется.
+ */
+export function freshReloadUrl(
+  location: Pick<Location, 'pathname' | 'hash'>,
+  now = Date.now(),
+): string {
+  return `${location.pathname}?r=${now}${location.hash}`;
 }
 
 /** Ключ в localStorage: время последней проверки и найденная версия. Это удобство, не данные. */

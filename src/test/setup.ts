@@ -20,10 +20,10 @@ if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
 // В jsdom нет service worker: модуль регистрации подменяется заглушкой.
 vi.mock('../app/sw', () => ({
   registerServiceWorker: () => ({
-    activateWaiting: vi.fn().mockResolvedValue(undefined),
-    checkForUpdate: vi.fn().mockResolvedValue(undefined),
+    hasWaiting: () => false,
+    activateWaiting: async () => false,
+    checkForUpdate: async () => undefined,
   }),
-  hasWaitingWorker: vi.fn().mockResolvedValue(false),
 }));
 
 // Проверка версии хранится в localStorage: каждый тест начинает с чистого.

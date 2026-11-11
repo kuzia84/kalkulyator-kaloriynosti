@@ -68,11 +68,19 @@ describe('обновление приложения', () => {
     expect(button).toHaveClass('button-update');
     expect(screen.getByText(/Вышла новая версия 9\.9\.9/)).toBeInTheDocument();
 
-    // Без ждущего service worker обновление сбрасывает кэш и перезагружает страницу.
-    const reload = vi.fn();
-    vi.spyOn(window, 'location', 'get').mockReturnValue({ ...window.location, reload });
+    // Без ждущего service worker обновление сбрасывает кэш и перезагружает страницу
+    // по новому адресу: так index.html не берётся из HTTP-кэша.
+    const replace = vi.fn();
+    vi.spyOn(window, 'location', 'get').mockReturnValue({
+      ...window.location,
+      pathname: '/',
+      hash: '#/settings',
+      replace,
+    });
     await user.click(button);
-    await waitFor(() => expect(reload).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(replace).toHaveBeenCalledWith(expect.stringMatching(/^\/\?r=\d+#\/settings$/)),
+    );
   });
 
   it('нет связи с сервером — понятное сообщение, «!» нет', async () => {
@@ -104,16 +112,44 @@ describe('обновление приложения', () => {
         return true;
       },
     });
-    const reload = vi.fn();
-    vi.spyOn(window, 'location', 'get').mockReturnValue({ ...window.location, reload });
+    const replace = vi.fn();
+    vi.spyOn(window, 'location', 'get').mockReturnValue({ ...window.location, replace });
     const before = await db.products.count();
     const user = await renderSettings();
     const card = screen.getByText('Версия приложения').closest('fieldset')!;
     await user.click(
       within(card as HTMLElement).getByRole('button', { name: 'Сбросить кэш и перезагрузить' }),
     );
-    await waitFor(() => expect(reload).toHaveBeenCalled());
+    await waitFor(() => expect(replace).toHaveBeenCalled());
     expect(deleted).toEqual(['workbox-precache', 'other']);
     expect(await db.products.count()).toBe(before);
+  });
+
+  it('сервер ответил, но не version.json — сообщение не про связь', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('<html>', { status: 200 })),
+    );
+    await renderSettings();
+    expect(await screen.findByText(/Сервер не отдал данные о версии/)).toBeInTheDocument();
+  });
+
+  it('без сети кнопки обновления и сброса кэша недоступны, проверка ждёт сеть', async () => {
+    localStorage.setItem(
+      UPDATE_STORAGE_KEY,
+      JSON.stringify({ lastCheckAt: Date.now() - 48 * 60 * 60 * 1000, remote: NEWER }),
+    );
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    const fetchMock = serveVersion(NEWER);
+    await renderSettings();
+    expect(screen.getByRole('button', { name: /Обновить приложение/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Сбросить кэш и перезагрузить' })).toBeDisabled();
+    expect(screen.getByText(/сейчас нет связи/)).toBeInTheDocument();
+    expect(versionCalls(fetchMock)).toBe(0);
+
+    // Сеть появилась — проверка идёт сразу, а не через час.
+    online.mockReturnValue(true);
+    window.dispatchEvent(new Event('online'));
+    await waitFor(() => expect(versionCalls(fetchMock)).toBe(1));
   });
 });

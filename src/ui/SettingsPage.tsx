@@ -281,13 +281,17 @@ function UpdateSection() {
       ? 'Проверяем…'
       : status === 'updating'
         ? 'Обновляем приложение…'
-        : updateAvailable
-          ? `Вышла новая версия${remote ? ` ${remote.version} (сборка ${remote.build})` : ''}. Нажмите «Обновить»: страница перезагрузится.`
-          : status === 'offline' || !online
-            ? 'Не удалось узнать версию на сервере: нет связи. Проверьте позже.'
-            : status === 'up-to-date'
-              ? 'Установлена последняя версия.'
-              : '';
+        : !online || status === 'offline'
+          ? updateAvailable
+            ? 'Вышла новая версия, но сейчас нет связи. Обновите приложение, когда появится интернет.'
+            : 'Не удалось узнать версию на сервере: нет связи. Проверьте позже.'
+          : updateAvailable
+            ? `Вышла новая версия${remote ? ` ${remote.version} (сборка ${remote.build})` : ''}. Нажмите «Обновить»: страница перезагрузится.`
+            : status === 'invalid'
+              ? 'Сервер не отдал данные о версии. Попробуйте позже.'
+              : status === 'checked'
+                ? 'Установлена последняя версия.'
+                : '';
 
   return (
     <fieldset className={`card update-card${updateAvailable ? ' is-available' : ''}`}>
@@ -301,7 +305,7 @@ function UpdateSection() {
           <button
             type="button"
             className="button button-update"
-            disabled={busy}
+            disabled={busy || !online}
             onClick={() => void applyUpdate()}
           >
             <span className="update-dot" aria-hidden="true">
@@ -319,7 +323,13 @@ function UpdateSection() {
             Проверить обновления
           </button>
         )}
-        <button type="button" className="button" disabled={busy} onClick={() => void resetCache()}>
+        {/* Без сети сброс оставил бы приложение без файлов: оно бы не открылось. */}
+        <button
+          type="button"
+          className="button"
+          disabled={busy || !online}
+          onClick={() => void resetCache()}
+        >
           Сбросить кэш и перезагрузить
         </button>
       </div>

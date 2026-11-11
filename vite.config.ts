@@ -12,9 +12,11 @@ const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 
   version: string;
 };
 const builtAt = new Date().toISOString();
-// Номер сборки: короткий SHA коммита в CI. Локально — время сборки, чтобы каждая сборка отличалась.
-const buildId =
-  process.env.GITHUB_SHA?.slice(0, 7) ?? `dev-${builtAt.replace(/\D/g, '').slice(0, 14)}`;
+// Номер сборки: короткий SHA собираемого коммита. Деплой передаёт его в BUILD_SHA: при запуске
+// по workflow_run переменная GITHUB_SHA указывает на последний коммит main, а не на собираемый.
+// Локально — время сборки, чтобы каждая сборка отличалась.
+const sha = process.env.BUILD_SHA ?? process.env.GITHUB_SHA;
+const buildId = sha ? sha.slice(0, 7) : `dev-${builtAt.replace(/\D/g, '').slice(0, 14)}`;
 
 /** Кладёт в сборку version.json: по нему открытое приложение узнаёт о новой версии. */
 function versionFile(): Plugin {
