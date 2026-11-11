@@ -1,12 +1,13 @@
-/** Нормализует название для поиска: нижний регистр, «ё» → «е», одиночные пробелы. */
+/** Нормализует название и запрос для поиска: нижний регистр, «ё» → «е», одиночные пробелы. */
 export function normalizeName(name: string): string {
   return name.toLocaleLowerCase('ru-RU').replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
 }
 
-/** Нормализует запрос. В отличие от названия, пробел в конце сохраняется: «рис » ≠ «рисовая». */
-export function normalizeQuery(query: string): string {
-  return query.toLocaleLowerCase('ru-RU').replace(/ё/g, 'е').replace(/\s+/g, ' ').trimStart();
-}
+/**
+ * Нормализует запрос. Пробел в конце убирается: клавиатура телефона добавляет его
+ * после выбора слова, и запрос «картофель » иначе ничего бы не нашёл.
+ */
+export const normalizeQuery = normalizeName;
 
 /** Оставляет в штрихкоде только цифры. */
 export function normalizeBarcode(code: string): string {

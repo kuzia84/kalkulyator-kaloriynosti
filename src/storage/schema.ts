@@ -83,3 +83,10 @@ export interface SearchCacheRecord {
   createdAt: number;
   products: Omit<Product, 'id' | 'rank' | 'verified'>[];
 }
+
+/** Служебные данные. Запись 'seed' хранит версию стартового набора и удалённые записи набора. */
+export interface MetaRecord {
+  id: 'seed';
+  version: number;
+  deletedIds: string[];
+}

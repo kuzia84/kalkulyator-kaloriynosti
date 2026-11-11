@@ -1,7 +1,8 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AppDB } from '../storage/db';
-import { commitUsage, findByBarcode, markUsed, searchLocal } from './catalog';
+import { commitUsage, findByBarcode, InvalidProductError, markUsed, searchLocal } from './catalog';
+import { rememberDeletedSeed, syncSeed } from '../storage/db';
 import { normalizeName, normalizeQuery } from './normalize';
 
 let db: AppDB;
@@ -20,8 +21,8 @@ describe('normalizeName', () => {
     expect(normalizeName('  Свёкла   Столовая ')).toBe('свекла столовая');
   });
 
-  it('запрос сохраняет пробел в конце', () => {
-    expect(normalizeQuery('  Рис ')).toBe('рис ');
+  it('запрос без пробела в конце: клавиатура телефона добавляет его после слова', () => {
+    expect(normalizeQuery('  Рис ')).toBe('рис');
   });
 });
 
@@ -42,6 +43,10 @@ describe('searchLocal', () => {
     expect((await searchLocal('Горошек зеленый', 20, db)).map((p) => p.name)).toContain(
       'Горошек зелёный',
     );
+  });
+
+  it('полное название с пробелом в конце находит продукт', async () => {
+    expect((await searchLocal('Картофель ', 20, db)).map((p) => p.name)).toEqual(['Картофель']);
   });
 
   it('не ищет совпадение в середине названия', async () => {
@@ -122,5 +127,101 @@ describe('commitUsage', () => {
     );
     expect((await findByBarcode('4600000000017', db))?.name).toBe('Йогурт');
     expect(await findByBarcode('123', db)).toBeUndefined();
+  });
+
+  it('внешний продукт с тем же штрихкодом, что у ручного, — отдельная запись', async () => {
+    const userId = await commitUsage(
+      { name: 'Сок', kcal: 10, protein: 0, fat: 0, carbs: 2, source: 'user', barcode: '111' },
+      db,
+    );
+    const offId = await commitUsage(
+      {
+        name: 'Сок',
+        kcal: 46,
+        protein: 0.5,
+        fat: 0,
+        carbs: 10.6,
+        source: 'off',
+        barcode: '111',
+        externalId: 'off:111',
+      },
+      db,
+    );
+    expect(offId).not.toBe(userId);
+  });
+
+  it('одинаковый externalId у разных источников не путается', async () => {
+    const usda = await commitUsage(
+      {
+        name: 'Apple',
+        kcal: 52,
+        protein: 0.3,
+        fat: 0.2,
+        carbs: 13.8,
+        source: 'usda',
+        externalId: 'x1',
+      },
+      db,
+    );
+    const off1 = await commitUsage(
+      {
+        name: 'Яблоко',
+        kcal: 47,
+        protein: 0.4,
+        fat: 0.4,
+        carbs: 9.8,
+        source: 'off',
+        externalId: 'x1',
+      },
+      db,
+    );
+    const off2 = await commitUsage(
+      {
+        name: 'Яблоко',
+        kcal: 47,
+        protein: 0.4,
+        fat: 0.4,
+        carbs: 9.8,
+        source: 'off',
+        externalId: 'x1',
+      },
+      db,
+    );
+    expect(off1).not.toBe(usda);
+    expect(off2).toBe(off1);
+  });
+
+  it('внешний продукт с названием и значениями как у стартового — отдельная запись', async () => {
+    const [potato] = await searchLocal('картофель', 1, db);
+    const id = await commitUsage({ ...potato!, source: 'off', externalId: 'off:42' }, db);
+    expect(id).not.toBe(potato!.id);
+  });
+
+  it('пустое название и NaN не попадают в справочник', async () => {
+    const before = await db.products.count();
+    await expect(
+      commitUsage({ name: '  ', kcal: 1, protein: 0, fat: 0, carbs: 0, source: 'user' }, db),
+    ).rejects.toBeInstanceOf(InvalidProductError);
+    await expect(
+      commitUsage(
+        { name: 'X', kcal: Number.NaN, protein: 0, fat: 0, carbs: 0, source: 'user' },
+        db,
+      ),
+    ).rejects.toBeInstanceOf(InvalidProductError);
+    expect(await db.products.count()).toBe(before);
+  });
+});
+
+describe('syncSeed', () => {
+  it('новая версия набора правит непроверенные записи и не возвращает удалённые', async () => {
+    await db.products.update('sk-014', { kcal: 1, rank: 7 });
+    await db.products.update('sk-015', { kcal: 1, verified: true });
+    await db.products.delete('sk-016');
+    await rememberDeletedSeed(db, 'sk-016');
+    await db.meta.update('seed', { version: 0 });
+    await syncSeed(db);
+    expect(await db.products.get('sk-014')).toMatchObject({ kcal: 77, rank: 7 });
+    expect((await db.products.get('sk-015'))!.kcal).toBe(1);
+    expect(await db.products.get('sk-016')).toBeUndefined();
   });
 });
