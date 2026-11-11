@@ -29,10 +29,16 @@ export function isNewer(
   current: Pick<RemoteVersion, 'build' | 'builtAt'>,
 ): boolean {
   if (remote == null || remote.build === current.build) return false;
-  const remoteAt = remote.builtAt ? Date.parse(remote.builtAt) : Number.NaN;
-  const currentAt = current.builtAt ? Date.parse(current.builtAt) : Number.NaN;
-  if (Number.isFinite(remoteAt) && Number.isFinite(currentAt)) return remoteAt > currentAt;
+  const remoteAt = parseBuiltAt(remote.builtAt);
+  const currentAt = parseBuiltAt(current.builtAt);
+  if (remoteAt != null && currentAt != null) return remoteAt > currentAt;
   return true;
+}
+
+/** Время сборки в мс или `null`, если даты нет или она битая. */
+export function parseBuiltAt(builtAt: string | undefined): number | null {
+  const at = builtAt ? Date.parse(builtAt) : Number.NaN;
+  return Number.isFinite(at) ? at : null;
 }
 
 function isRemoteVersion(v: unknown): v is RemoteVersion {
@@ -139,18 +145,25 @@ export async function clearAppCache(): Promise<void> {
   }
 }
 
+/**
+ * Дата версии считается по московскому времени, а не по часам устройства:
+ * одна сборка должна называться одинаково у всех пользователей.
+ */
+export const VERSION_TIME_ZONE = 'Europe/Moscow';
+
 const versionDateFormatter = new Intl.DateTimeFormat('ru-RU', {
   day: '2-digit',
   month: '2-digit',
   year: '2-digit',
+  timeZone: VERSION_TIME_ZONE,
 });
 
 /**
- * Версия, которую видит пользователь: дата сборки в формате дд.мм.гг по часам устройства.
- * Нет даты или она битая — номер из package.json. Две сборки за один день различаются
- * номером сборки, который показывается рядом.
+ * Версия, которую видит пользователь: «от дд.мм.гг» по дате сборки.
+ * Нет даты или она битая — номер из package.json («0.2.0»). Две сборки за один день
+ * различаются номером сборки, который показывается рядом.
  */
 export function versionLabel(v: Pick<RemoteVersion, 'version' | 'builtAt'>): string {
-  const at = v.builtAt ? Date.parse(v.builtAt) : Number.NaN;
-  return Number.isFinite(at) ? versionDateFormatter.format(at) : v.version;
+  const at = parseBuiltAt(v.builtAt);
+  return at != null ? `от ${versionDateFormatter.format(at)}` : v.version;
 }

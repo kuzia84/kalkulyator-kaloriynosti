@@ -46,9 +46,9 @@ describe('обновление приложения', () => {
     const first = document.querySelector('.settings fieldset legend');
     expect(first).toHaveTextContent('Версия приложения');
     expect(document.querySelector('.update-card')).toHaveTextContent(
-      `Установлена версия от ${versionLabel(CURRENT_VERSION)} (сборка ${CURRENT_VERSION.build}).`,
+      `Установлена версия ${versionLabel(CURRENT_VERSION)} (сборка ${CURRENT_VERSION.build}).`,
     );
-    expect(versionLabel(CURRENT_VERSION)).toMatch(/^\d{2}\.\d{2}\.\d{2}$/);
+    expect(versionLabel(CURRENT_VERSION)).toMatch(/^от \d{2}\.\d{2}\.\d{2}$/);
   });
 
   it('та же сборка на сервере — «последняя версия», без «!»', async () => {
