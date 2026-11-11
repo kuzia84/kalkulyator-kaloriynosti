@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { hasContent, initialDishState, pickAction, type DishState } from '../dish/state';
 import type { UseDish } from '../dish/useDish';
 import { BarcodeDialog } from './BarcodeDialog';
+import { DishExtras } from './DishExtras';
 import { DishTable } from './DishTable';
 import { Modal } from './Modal';
 import { ProductForm } from './ProductForm';
@@ -85,6 +86,7 @@ export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageP
           onBarcode={setBarcodeRow}
         />
       </div>
+      <DishExtras state={state} dispatch={dispatch} />
       {manual ? (
         <Modal title="Новый продукт" onClose={() => setManual(null)}>
           <ProductForm

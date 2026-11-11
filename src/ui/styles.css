@@ -18,6 +18,9 @@
   --shadow: 0 6px 24px rgb(0 0 0 / 12%);
   --radius: 10px;
   --control-height: 48px;
+  --chart-protein: #2f7d4f;
+  --chart-fat: #c27c0e;
+  --chart-carbs: #3a6fb0;
   --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
@@ -40,11 +43,17 @@
     --note-text: #bcdcff;
     --danger: #ff8a80;
     --shadow: 0 6px 24px rgb(0 0 0 / 50%);
+    --chart-protein: #6cc493;
+    --chart-fat: #f0b450;
+    --chart-carbs: #7fb0ef;
   }
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
+  --chart-protein: #6cc493;
+  --chart-fat: #f0b450;
+  --chart-carbs: #7fb0ef;
   --bg: #121513;
   --surface: #1b1f1c;
   --surface-2: #242a26;
@@ -822,6 +831,110 @@ h2 {
   font-weight: 500;
 }
 
+/* Порция, диаграмма, рецепты */
+
+.dish-extras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.dish-extras .card {
+  margin: 0;
+  padding: 12px 16px;
+}
+
+.dish-extras h2 {
+  margin-bottom: 8px;
+}
+
+.dish-meta {
+  grid-column: 1 / -1;
+}
+
+.portion-values {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.portion-values dt {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.portion-values dd {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.macro-chart {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+}
+
+.macro-title {
+  margin: 0 0 4px;
+  font-weight: 500;
+}
+
+.macro-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.macro-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.macro-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.form-actions-start {
+  justify-content: flex-start;
+}
+
+.recipe-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.recipe-item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 12px 16px;
+}
+
+.recipe-item h2 {
+  margin: 0 0 4px;
+}
+
+.recipe-note {
+  margin: 4px 0;
+  white-space: pre-wrap;
+}
+
 /* Телефон: строки таблицы становятся карточками. */
 
 @media (max-width: 720px) {
@@ -989,6 +1102,8 @@ h2 {
 
 @media print {
   .app-header,
+  .app-nav,
+  .banner,
   .page-actions,
   .row-add,
   .button-icon,
