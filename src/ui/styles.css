@@ -718,6 +718,110 @@ h2 {
   margin-top: 16px;
 }
 
+/* Справочник (модерация) */
+
+.filters {
+  display: grid;
+  grid-template-columns: minmax(200px, 2fr) repeat(2, minmax(140px, 1fr)) minmax(200px, 1.5fr);
+  gap: 0 12px;
+  align-items: end;
+  padding-bottom: 8px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.data-table thead th {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: left;
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+
+.data-table .cell-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.data-table .cell-title {
+  min-width: 200px;
+}
+
+.data-table .cell-actions {
+  white-space: nowrap;
+}
+
+.data-table .cell-actions .button + .button {
+  margin-left: 6px;
+}
+
+.data-table tr.is-suspicious {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.sort-button {
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 6px 0;
+  min-height: 36px;
+  cursor: pointer;
+}
+
+.badge-warning {
+  margin-left: 6px;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border: 1px solid currentColor;
+}
+
+.checkbox-compact {
+  min-height: 36px;
+  padding: 0;
+  align-items: center;
+}
+
+.button-danger {
+  color: var(--danger);
+}
+
+.button-danger-solid {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--surface);
+  font-weight: 600;
+}
+
+.button-more {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.merge-list {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.merge-list legend {
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
 /* Телефон: строки таблицы становятся карточками. */
 
 @media (max-width: 720px) {
@@ -823,6 +927,63 @@ h2 {
 
   .field-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .data-table,
+  .data-table tbody,
+  .data-table tr,
+  .data-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .data-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .data-table tr {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px 8px;
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table td {
+    padding: 0;
+    border: 0;
+  }
+
+  .data-table .cell-title {
+    grid-column: 2 / -1;
+    min-width: 0;
+  }
+
+  .data-table .cell-select {
+    grid-column: 1;
+  }
+
+  .data-table .cell-actions {
+    grid-column: 1 / -1;
+  }
+
+  .data-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .data-table .cell-number {
+    text-align: left;
   }
 }
 

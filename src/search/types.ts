@@ -14,6 +14,8 @@ export interface Suggestion extends Nutrients {
   detail?: string;
   /** Продукт пришёл из внешнего источника и ещё не в справочнике. */
   external: boolean;
+  /** Внешние id, объединённые модератором в эту запись. */
+  aliases?: string[];
 }
 
 export function suggestionFromProduct(p: Product): Suggestion {
@@ -29,6 +31,7 @@ export function suggestionFromProduct(p: Product): Suggestion {
     external: false,
     ...(p.barcode ? { barcode: p.barcode } : {}),
     ...(p.externalId ? { externalId: p.externalId } : {}),
+    ...(p.aliases?.length ? { aliases: p.aliases } : {}),
   };
 }
 

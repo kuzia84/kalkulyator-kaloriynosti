@@ -25,7 +25,7 @@ export class AppDB extends Dexie {
     // Новая версия схемы: db.version(2).stores({...}).upgrade(tx => ...).
     // Dexie сам хранит номер версии и запускает upgrade для старых баз.
     this.version(SCHEMA_VERSION).stores({
-      products: 'id, nameNorm, barcode, source, rank, externalId',
+      products: 'id, nameNorm, barcode, source, rank, externalId, *aliases',
       drafts: 'id',
       recipes: 'id, updatedAt',
       settings: 'id',
@@ -51,8 +51,9 @@ export function seedProducts(): Product[] {
 /**
  * Обновляет стартовый набор в существующей базе, если в коде вышла новая версия набора.
  * - Новые записи добавляются.
- * - Записи, которые модератор не проверял, получают исправленные значения. Ранг сохраняется.
- * - Записи, которые модератор проверил или удалил, не трогаются.
+ * - Записи, которые модератор не проверял и не правил, получают исправленные значения.
+ *   Ранг сохраняется.
+ * - Записи, которые модератор проверил, правил или удалил, не трогаются.
  */
 export async function syncSeed(db: AppDB): Promise<void> {
   await db.transaction('rw', db.products, db.meta, async () => {
@@ -64,7 +65,7 @@ export async function syncSeed(db: AppDB): Promise<void> {
       const existing = await db.products.get(seed.id);
       if (!existing) {
         await db.products.add(seed);
-      } else if (!existing.verified) {
+      } else if (!existing.verified && existing.editedAt == null) {
         await db.products.update(seed.id, {
           name: seed.name,
           nameNorm: seed.nameNorm,
@@ -89,6 +90,16 @@ export async function rememberDeletedSeed(db: AppDB, productId: string): Promise
       deletedIds: [],
     };
     if (!meta.deletedIds.includes(productId)) meta.deletedIds.push(productId);
+    await db.meta.put(meta);
+  });
+}
+
+/** Снимает отметку об удалении записи набора: модератор отменил удаление. */
+export async function forgetDeletedSeed(db: AppDB, productId: string): Promise<void> {
+  await db.transaction('rw', db.meta, async () => {
+    const meta = await db.meta.get('seed');
+    if (!meta || !meta.deletedIds.includes(productId)) return;
+    meta.deletedIds = meta.deletedIds.filter((id) => id !== productId);
     await db.meta.put(meta);
   });
 }
