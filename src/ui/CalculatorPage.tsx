@@ -88,7 +88,7 @@ export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageP
               ? `${ingredientsCount(filled)} · ${formatWeight(total.weight)} г`
               : 'Калькулятор калорийности блюда'}
           </p>
-          {/* Итог сохранения — у заголовка, рядом с кнопкой «Сохранить» в шапке. */}
+          {/* Итог сохранения — у заголовка, рядом с кнопкой «Сохранить». */}
           <p className="save-status" role="status">
             {message}
           </p>

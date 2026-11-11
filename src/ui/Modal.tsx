@@ -6,6 +6,18 @@ export interface ModalProps {
   children: ReactNode;
 }
 
+/** Сколько окон открыто сейчас. Прокрутку страницы возвращает закрытие последнего. */
+let openModals = 0;
+
+function lockPageScroll(): () => void {
+  openModals += 1;
+  document.documentElement.style.overflow = 'hidden';
+  return () => {
+    openModals -= 1;
+    if (openModals === 0) document.documentElement.style.overflow = '';
+  };
+}
+
 /**
  * Модальное окно: фокус переходит внутрь окна и возвращается назад после закрытия,
  * Escape закрывает окно, Tab не выходит за его пределы.
@@ -28,37 +40,38 @@ export function Modal({ title, onClose, children }: ModalProps) {
   }, []);
 
   // Страница под окном не прокручивается: прокрутка остаётся только у самого окна.
-  useEffect(() => {
-    const root = document.documentElement;
-    const previous = root.style.overflow;
-    root.style.overflow = 'hidden';
-    return () => {
-      root.style.overflow = previous;
-    };
-  }, []);
+  useEffect(() => lockPageScroll(), []);
 
   // Кнопки окна стоят в один ряд, пока помещаются. Иначе — друг под другом на всю ширину.
   useLayoutEffect(() => {
     const modal = ref.current;
     if (!modal) return;
-    function layout() {
-      for (const row of modal!.querySelectorAll<HTMLElement>('.form-actions, .barcode-actions')) {
+    const layout = () => {
+      for (const row of modal.querySelectorAll<HTMLElement>('.form-actions, .barcode-actions')) {
         row.classList.remove('is-stacked');
         row.classList.add('is-measuring');
         const overflow = row.scrollWidth > row.clientWidth + 1;
         row.classList.remove('is-measuring');
         row.classList.toggle('is-stacked', overflow);
       }
-    }
+    };
     layout();
     // jsdom в тестах не знает ResizeObserver: там раскладку не пересчитываем.
     if (typeof ResizeObserver === 'undefined') return;
-    const resize = new ResizeObserver(layout);
+    // Пересчёт — не чаще раза за кадр и вне обработчика ResizeObserver:
+    // смена класса меняет высоту окна, и пересчёт внутри обработчика дал бы ошибку цикла.
+    let frame = 0;
+    const schedule = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(layout);
+    };
+    const resize = new ResizeObserver(schedule);
     resize.observe(modal);
-    // Содержимое окна меняется (другой способ заполнения, найденный продукт): считаем заново.
-    const mutation = new MutationObserver(layout);
-    mutation.observe(modal, { childList: true, subtree: true, characterData: true });
+    // Новые кнопки появляются вместе с новыми элементами: текст внутри полей пересчёт не вызывает.
+    const mutation = new MutationObserver(schedule);
+    mutation.observe(modal, { childList: true, subtree: true });
     return () => {
+      cancelAnimationFrame(frame);
       resize.disconnect();
       mutation.disconnect();
     };
