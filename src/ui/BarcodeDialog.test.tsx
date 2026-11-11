@@ -30,10 +30,9 @@ async function openDialog(mode: 'По штрихкоду' | 'Найти в се�
 describe('окно «Новый продукт» из строки калькулятора', () => {
   it('режимы те же, что в справочнике', async () => {
     const { dialog } = await openDialog('По штрихкоду');
-    const modes = within(within(dialog).getByRole('group', { name: 'Как заполнить' }))
-      .getAllByRole('button')
-      .map((b) => b.textContent);
-    expect(modes).toEqual(['Вручную', 'По штрихкоду', 'Найти в сети']);
+    const group = within(dialog).getByRole('group', { name: 'Как заполнить' });
+    const buttons = within(group).getAllByRole('button');
+    expect(buttons.map((b) => b.textContent)).toEqual(['Вручную', 'По штрихкоду', 'Найти в сети']);
   });
 
   it('код из справочника: продукт сразу попадает в строку', async () => {
@@ -99,9 +98,7 @@ describe('окно «Новый продукт» из строки кальку�
     );
     await user.click(within(dialog).getByRole('button', { name: 'Добавить в таблицу' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(screen.getByRole('combobox', { name: 'Ингредиент 1' })).toHaveValue(
-      'Творог 5 % «Тест»',
-    );
+    expect(screen.getByRole('combobox', { name: 'Ингредиент 1' })).toHaveValue('Творог 5 % «Тест»');
     const saved = await db.products.where('barcode').equals('4601916007082').first();
     expect(saved).toMatchObject({ source: 'off', externalId: 'off:4601916007082' });
   });
