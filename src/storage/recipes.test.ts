@@ -53,7 +53,6 @@ describe('рецепты', () => {
       note: 'на 4 порции',
     });
     expect(saved!.rows).toHaveLength(2);
-    expect(saved!.rows[0]).not.toHaveProperty('committed');
 
     const again = await saveRecipe({ ...state, recipeId: id, name: 'Новое имя' }, db, 2000);
     expect(again).toBe(id);
@@ -83,7 +82,7 @@ describe('рецепты', () => {
     const state = recipeToState((await listRecipes())[0]!);
     expect(state.rows).toHaveLength(4);
     expect(state.recipeId).toBe(id);
-    expect(state.rows[0]!.committed).toBe(true);
+    expect(state.rows[0]!.name).toBe('А');
   });
 });
 
@@ -147,5 +146,61 @@ describe('экспорт и импорт JSON', () => {
     await saveRecipe({ ...sampleDish(), recipeId: id, name: 'Свежее' }, db, 9000);
     await importBackup(json);
     expect((await listRecipes())[0]!.name).toBe('Свежее');
+  });
+
+  it('удалённая на устройстве запись набора не возвращается из файла', async () => {
+    const json = JSON.stringify(await exportBackup());
+    await db.products.delete('sk-014');
+    await db.meta.update('seed', { deletedIds: ['sk-014'] });
+    await db.products.update('sk-015', { rank: 0 });
+    await importBackup(json.replace('"rank":0', '"rank":9'));
+    expect(await db.products.get('sk-014')).toBeUndefined();
+  });
+
+  it('тот же ручной продукт с другим id не дублируется, псевдонимы сохраняются', async () => {
+    await db.products.add({
+      id: 'local-1',
+      name: 'Творог домашний',
+      nameNorm: 'творог домашний',
+      kcal: 150,
+      protein: 16,
+      fat: 9,
+      carbs: 2,
+      source: 'user',
+      rank: 1,
+      verified: false,
+      aliases: ['old-1'],
+    });
+    const file = {
+      format: 'kalkulyator-kaloriynosti',
+      version: 1,
+      products: [
+        {
+          id: 'phone-1',
+          name: 'Творог домашний',
+          kcal: 150,
+          protein: 16,
+          fat: 9,
+          carbs: 2,
+          source: 'user',
+          rank: 4,
+          verified: false,
+          editedAt: 10,
+        },
+      ],
+      recipes: [],
+    };
+    await importBackup(JSON.stringify(file));
+    const same = await db.products.where('nameNorm').equals('творог домашний').toArray();
+    expect(same).toHaveLength(1);
+    expect(same[0]).toMatchObject({ id: 'local-1', rank: 4, aliases: ['old-1'], editedAt: 10 });
+  });
+});
+
+describe('CSV и формулы Excel', () => {
+  it('текст с = в начале не становится формулой', () => {
+    let s = initialDishState();
+    s = dishReducer(s, { type: 'setDishName', value: '=HYPERLINK("x")' });
+    expect(dishToCsv(s)).toContain(`"'=HYPERLINK(""x"")"`);
   });
 });

@@ -16,7 +16,9 @@ import type { DishState } from './state';
 const SEP = ';';
 const BOM = '﻿';
 
-function cell(value: string): string {
+function cell(raw: string): string {
+  // Текст, который начинается с = + - @, Excel читает как формулу. Апостроф отключает это.
+  const value = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
   return /[";\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 

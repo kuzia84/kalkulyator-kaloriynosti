@@ -33,7 +33,9 @@ export function SettingsPage() {
   async function exportFile() {
     try {
       const backup = await exportBackup();
-      const date = backup.exportedAt.slice(0, 10);
+      // Дата в имени файла — по часам устройства, а не по UTC.
+      const d = new Date(backup.exportedAt);
+      const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       downloadText(`калькулятор-${date}.json`, JSON.stringify(backup, null, 2), 'application/json');
       setDataMessage(
         `Сохранено: продуктов — ${backup.products.length}, рецептов — ${backup.recipes.length}.`,

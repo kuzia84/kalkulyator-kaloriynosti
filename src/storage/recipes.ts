@@ -12,11 +12,12 @@ export async function getRecipe(id: string, db: AppDB = defaultDb): Promise<Dish
   return db.recipes.get(id);
 }
 
-/** Строки рецепта без пустых строк и без служебных отметок о записи в справочник. */
+/**
+ * Строки рецепта без пустых строк. Отметка о записи в справочник сохраняется:
+ * строка, которую ещё не учли, будет учтена после открытия рецепта.
+ */
 function cleanRows(state: DishState): Dish['rows'] {
-  return state.rows
-    .filter((r) => r.name.trim() !== '' || r.weight.trim() !== '')
-    .map(({ committed: _committed, ...row }) => row);
+  return state.rows.filter((r) => r.name.trim() !== '' || r.weight.trim() !== '');
 }
 
 /**
@@ -80,8 +81,9 @@ export async function duplicateRecipe(
 
 /** Состояние калькулятора из рецепта. Строки получают новые id, чтобы не путаться с рецептом. */
 export function recipeToState(recipe: Dish): DishState {
-  // Продукты рецепта уже учтены в справочнике при первом расчёте: повторное открытие ранг не меняет.
-  const rows: DishRow[] = recipe.rows.map((r) => ({ ...r, id: newId(), committed: true }));
+  // Строки, уже учтённые в справочнике, при открытии ранг не меняют. Неучтённые учтутся
+  // после ввода веса, как в новом блюде.
+  const rows: DishRow[] = recipe.rows.map((r) => ({ ...r, id: newId() }));
   // Как и пустая таблица, открытый рецепт показывает не меньше 4 строк.
   while (rows.length < INITIAL_ROWS) rows.push(emptyRow());
   return {

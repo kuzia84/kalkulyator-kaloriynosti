@@ -24,6 +24,7 @@ export interface DishExtrasProps {
 /** Блоки под таблицей: порция, диаграмма БЖУ, название и заметка, сохранение и экспорт. */
 export function DishExtras({ state, dispatch }: DishExtrasProps) {
   const [message, setMessage] = useState('');
+  const [saving, setSaving] = useState(false);
   const total = totals(state.rows);
   const baseWeight = dishWeight(total.weight, state.cookedWeight);
   const portionValues = portion(total.nutrients, baseWeight, state.portionWeight);
@@ -31,13 +32,19 @@ export function DishExtras({ state, dispatch }: DishExtrasProps) {
   const usesCooked = state.cookedWeight.trim() !== '' && baseWeight != null;
 
   async function save() {
+    // Второе нажатие во время сохранения создало бы второй рецепт.
+    if (saving) return;
+    setSaving(true);
+    const linked = state.recipeId;
     try {
       const id = await saveRecipe(state);
       // Отдельное действие, а не замена состояния: правки во время сохранения не теряются.
       dispatch({ type: 'setRecipeId', value: id });
-      setMessage(state.recipeId ? 'Рецепт обновлён.' : 'Рецепт сохранён в «Мои рецепты».');
+      setMessage(linked === id ? 'Рецепт обновлён.' : 'Рецепт сохранён в «Мои рецепты».');
     } catch {
       setMessage('Не удалось сохранить рецепт.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -99,7 +106,12 @@ export function DishExtras({ state, dispatch }: DishExtrasProps) {
           />
         </label>
         <div className="form-actions form-actions-start no-print">
-          <button type="button" className="button button-primary" onClick={() => void save()}>
+          <button
+            type="button"
+            className="button button-primary"
+            disabled={saving}
+            onClick={() => void save()}
+          >
             {state.recipeId ? 'Обновить рецепт' : 'Сохранить в рецепты'}
           </button>
           <button
