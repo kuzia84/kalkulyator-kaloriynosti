@@ -3,6 +3,7 @@ import { downloadText } from '../lib/download';
 import { BackupError, exportBackup, importBackup } from '../storage/backup';
 import { useSettings } from '../app/settingsContext';
 import { useAppUpdate } from '../app/updateContext';
+import { versionLabel } from '../app/updates';
 import { useOnline } from '../app/useOnline';
 import type { ExternalSource, Theme } from '../storage/schema';
 import { SUGGESTIONS_MAX, SUGGESTIONS_MIN } from '../storage/settings';
@@ -286,7 +287,7 @@ function UpdateSection() {
             ? 'Вышла новая версия, но сейчас нет связи. Обновите приложение, когда появится интернет.'
             : 'Не удалось узнать версию на сервере: нет связи. Проверьте позже.'
           : updateAvailable
-            ? `Вышла новая версия${remote ? ` ${remote.version} (сборка ${remote.build})` : ''}. Нажмите «Обновить»: страница перезагрузится.`
+            ? `Вышла новая версия${remote ? ` от ${versionLabel(remote)} (сборка ${remote.build})` : ''}. Нажмите «Обновить»: страница перезагрузится.`
             : status === 'invalid'
               ? 'Сервер не отдал данные о версии. Попробуйте позже.'
               : status === 'checked'
@@ -297,7 +298,7 @@ function UpdateSection() {
     <fieldset className={`card update-card${updateAvailable ? ' is-available' : ''}`}>
       <legend>Версия приложения</legend>
       <p>
-        Установлена версия {current.version} (сборка {current.build}).
+        Установлена версия от {versionLabel(current)} (сборка {current.build}).
         {lastCheckAt ? ` Проверено: ${checkTimeFormatter.format(lastCheckAt)}.` : ''}
       </p>
       <div className="form-actions form-actions-start">

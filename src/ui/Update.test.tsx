@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CURRENT_VERSION, UPDATE_STORAGE_KEY } from '../app/updates';
+import { CURRENT_VERSION, UPDATE_STORAGE_KEY, versionLabel } from '../app/updates';
 import { db } from '../storage/db';
 import { resetDb } from '../test/db';
 import { App } from './App';
@@ -45,9 +45,10 @@ describe('обновление приложения', () => {
     await renderSettings();
     const first = document.querySelector('.settings fieldset legend');
     expect(first).toHaveTextContent('Версия приложения');
-    expect(
-      screen.getByText(new RegExp(`Установлена версия ${CURRENT_VERSION.version}`)),
-    ).toBeInTheDocument();
+    expect(document.querySelector('.update-card')).toHaveTextContent(
+      `Установлена версия от ${versionLabel(CURRENT_VERSION)} (сборка ${CURRENT_VERSION.build}).`,
+    );
+    expect(versionLabel(CURRENT_VERSION)).toMatch(/^\d{2}\.\d{2}\.\d{2}$/);
   });
 
   it('та же сборка на сервере — «последняя версия», без «!»', async () => {
@@ -66,7 +67,9 @@ describe('обновление приложения', () => {
     ).toBeInTheDocument();
     const button = screen.getByRole('button', { name: /Обновить приложение/ });
     expect(button).toHaveClass('button-update');
-    expect(screen.getByText(/Вышла новая версия 9\.9\.9/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Вышла новая версия от 01\.01\.99 \(сборка new9999\)/),
+    ).toBeInTheDocument();
 
     // Без ждущего service worker обновление сбрасывает кэш и перезагружает страницу
     // по новому адресу: так index.html не берётся из HTTP-кэша.

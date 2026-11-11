@@ -138,3 +138,19 @@ export async function clearAppCache(): Promise<void> {
     await Promise.all(keys.map((k) => caches.delete(k)));
   }
 }
+
+const versionDateFormatter = new Intl.DateTimeFormat('ru-RU', {
+  day: '2-digit',
+  month: '2-digit',
+  year: '2-digit',
+});
+
+/**
+ * Версия, которую видит пользователь: дата сборки в формате дд.мм.гг по часам устройства.
+ * Нет даты или она битая — номер из package.json. Две сборки за один день различаются
+ * номером сборки, который показывается рядом.
+ */
+export function versionLabel(v: Pick<RemoteVersion, 'version' | 'builtAt'>): string {
+  const at = v.builtAt ? Date.parse(v.builtAt) : Number.NaN;
+  return Number.isFinite(at) ? versionDateFormatter.format(at) : v.version;
+}
