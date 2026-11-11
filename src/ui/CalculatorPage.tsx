@@ -61,7 +61,9 @@ export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageP
   return (
     <section aria-labelledby="calc-title">
       <div className="page-header">
-        <h1 id="calc-title">Калькулятор калорийности блюда</h1>
+        <h1 className="page-title" tabIndex={-1} id="calc-title">
+          Калькулятор калорийности блюда
+        </h1>
         <div className="page-actions">
           <button
             type="button"

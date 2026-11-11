@@ -27,23 +27,29 @@ function Shell() {
   const ready = dish.ready && settingsReady;
   const mainRef = useRef<HTMLElement>(null);
   const previousPage = useRef(page);
+  const readyRef = useRef(ready);
+  readyRef.current = ready;
+
+  function focusPageTitle() {
+    // У каждой страницы заголовок .page-title с tabIndex={-1}. Нет заголовка — фокус на <main>.
+    const target =
+      mainRef.current?.querySelector<HTMLElement>('.page-title') ?? mainRef.current ?? null;
+    target?.focus();
+  }
 
   // Смена раздела переводит фокус на заголовок страницы: программа чтения с экрана
   // объявляет новый раздел, а Tab продолжает с начала его содержимого.
+  // Смена раздела во время загрузки фокус не трогает: пользователь мог уже уйти Tab дальше.
   useEffect(() => {
-    if (!ready || previousPage.current === page) return;
+    const changed = previousPage.current !== page;
     previousPage.current = page;
-    const heading = mainRef.current?.querySelector<HTMLElement>('h1');
-    if (heading) {
-      heading.tabIndex = -1;
-      heading.focus();
-    }
-  }, [page, ready]);
+    if (changed && readyRef.current) focusPageTitle();
+  }, [page]);
 
   function skipToContent(e: MouseEvent<HTMLAnchorElement>) {
     // Обычный переход по #id сменил бы маршрут: адреса разделов тоже лежат в hash.
     e.preventDefault();
-    mainRef.current?.focus();
+    focusPageTitle();
   }
 
   return (

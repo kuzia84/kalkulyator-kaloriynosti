@@ -225,7 +225,7 @@ describe('доступность навигации', () => {
   it('ссылка «Перейти к содержимому» ставит фокус на основную область и не меняет раздел', async () => {
     const user = await renderApp();
     await user.click(screen.getByRole('link', { name: 'Перейти к содержимому' }));
-    expect(screen.getByRole('main')).toHaveFocus();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveFocus();
     expect(screen.getByRole('table')).toBeInTheDocument();
   });
 

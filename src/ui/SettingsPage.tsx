@@ -88,7 +88,9 @@ export function SettingsPage() {
 
   return (
     <section aria-labelledby="settings-title" className="settings">
-      <h1 id="settings-title">Настройки</h1>
+      <h1 className="page-title" tabIndex={-1} id="settings-title">
+        Настройки
+      </h1>
       <p className="hint">Настройки хранятся только на этом устройстве.</p>
 
       <fieldset className="card">

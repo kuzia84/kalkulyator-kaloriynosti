@@ -118,28 +118,46 @@ test('нет горизонтальной прокрутки', async ({ page }) 
   expect(scroll).toBeLessThanOrEqual(width);
 });
 
-test('рамка поля ввода заметна: контраст не меньше 3:1', async ({ page }) => {
-  const ratio = await page.evaluate(() => {
-    const lum = (c: string) => {
-      const [r, g, b] = (c.match(/[\d.]+/g) ?? []).slice(0, 3).map((v) => {
-        const x = Number(v) / 255;
-        return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+for (const theme of ['light', 'dark'] as const) {
+  test(`рамка поля ввода заметна (${theme}): контраст к фону страницы и карточки не меньше 3:1`, async ({
+    page,
+  }) => {
+    await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
+    const ratios = await page.evaluate(() => {
+      const lum = (c: string) => {
+        const [r, g, b] = (c.match(/[\d.]+/g) ?? []).slice(0, 3).map((v) => {
+          const x = Number(v) / 255;
+          return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+      };
+      const contrast = (a: string, b: string) => {
+        const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+        return (x! + 0.05) / (y! + 0.05);
+      };
+      const border = getComputedStyle(
+        document.querySelector<HTMLElement>('.input')!,
+      ).borderTopColor;
+      // Рамку сравниваем с цветами вокруг поля: фон страницы, карточки и шапки таблицы.
+      return ['--bg', '--surface', '--surface-2'].map((token) => {
+        const probe = document.createElement('div');
+        probe.style.background = `var(${token})`;
+        document.body.append(probe);
+        const bg = getComputedStyle(probe).backgroundColor;
+        probe.remove();
+        return contrast(border, bg);
       });
-      return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
-    };
-    const input = document.querySelector<HTMLElement>('.input')!;
-    const s = getComputedStyle(input);
-    const [a, b] = [lum(s.borderTopColor), lum(s.backgroundColor)].sort((x, y) => y - x);
-    return (a! + 0.05) / (b! + 0.05);
+    });
+    for (const r of ratios) expect(r).toBeGreaterThanOrEqual(3);
   });
-  expect(ratio).toBeGreaterThanOrEqual(3);
-});
+}
 
 test('планшет и телефон в горизонтальной ориентации: карточки, без прокрутки вбок', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 800, height: 400 });
-  await expect(page.getByRole('columnheader', { name: 'Наименование ингредиента' })).toBeHidden();
+  // Карточный вид: строка таблицы — сетка, а не строка таблицы.
+  await expect(page.locator('.dish-table tbody tr').first()).toHaveCSS('display', 'grid');
   const [scroll, width] = await page.evaluate(() => [
     document.documentElement.scrollWidth,
     window.innerWidth,

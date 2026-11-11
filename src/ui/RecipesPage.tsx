@@ -95,7 +95,9 @@ export function RecipesPage({ current, dispatch, offerUndo, onOpened }: RecipesP
 
   return (
     <section aria-labelledby="recipes-title">
-      <h1 id="recipes-title">Мои рецепты</h1>
+      <h1 className="page-title" tabIndex={-1} id="recipes-title">
+        Мои рецепты
+      </h1>
       <p className="hint">
         Рецепт хранит ингредиенты с их значениями на момент сохранения. Правки справочника рецепт не
         меняют.

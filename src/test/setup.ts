@@ -12,6 +12,7 @@ afterEach(() => {
 });
 
 // jsdom не реализует scrollIntoView.
-if (!Element.prototype.scrollIntoView) {
+// Тесты в среде node (без DOM) тоже используют этот файл.
+if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = function scrollIntoView() {};
 }
