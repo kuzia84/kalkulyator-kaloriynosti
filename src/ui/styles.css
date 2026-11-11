@@ -589,13 +589,6 @@ a {
   flex: none;
 }
 
-.app-actions {
-  justify-self: end;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
 .app-main {
   flex: 1;
   width: 100%;
@@ -605,7 +598,17 @@ a {
 }
 
 .page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
   margin-bottom: var(--space-4);
+}
+
+.page-heading {
+  flex: 1 1 320px;
+  min-width: 0;
 }
 
 .save-status {
@@ -627,8 +630,8 @@ a {
 .page-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
-  margin-bottom: var(--space-3);
 }
 
 .hint {
@@ -1661,6 +1664,25 @@ a {
   z-index: 1;
 }
 
+.modal .is-measuring {
+  flex-wrap: nowrap;
+  /* С выравниванием вправо лишняя ширина уходит влево, и scrollWidth её не видит. */
+  justify-content: flex-start;
+}
+
+.modal .is-measuring > * {
+  flex: none;
+}
+
+.modal .is-stacked {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.modal .is-stacked > * {
+  width: 100%;
+}
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -1748,6 +1770,24 @@ a {
 
 .settings {
   max-width: 720px;
+}
+
+/* На широком экране группы настроек — в две колонки, чтобы справа не было пустоты. */
+@media (min-width: 1024px) {
+  .settings {
+    max-width: none;
+    columns: 2;
+    column-gap: var(--space-6);
+  }
+
+  .settings > .page-header {
+    column-span: all;
+  }
+
+  .settings > .group {
+    display: block;
+    break-inside: avoid;
+  }
 }
 
 .group {
@@ -2493,7 +2533,7 @@ a {
     width: 100%;
     min-height: 0;
     margin: 0;
-    padding: max(var(--space-3), env(safe-area-inset-top)) var(--space-4) 0;
+    padding: 0;
     background: transparent;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -2505,12 +2545,22 @@ a {
     display: none;
   }
 
-  .app-actions {
-    flex: 1;
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-heading {
+    flex: none;
+  }
+
+  /* Кнопки раздела — верхней строкой экрана: первая слева, остальные справа. */
+  .page-actions {
+    order: -1;
     justify-content: flex-end;
   }
 
-  .app-actions > :first-child:not(:only-child) {
+  .page-actions > :first-child:not(:only-child) {
     margin-right: auto;
   }
 
@@ -2595,7 +2645,7 @@ a {
   }
 
   .app-main {
-    padding: var(--space-2) var(--space-4)
+    padding: max(var(--space-4), env(safe-area-inset-top)) var(--space-4)
       calc(var(--tabbar-height) + var(--tabbar-gap) + 140px + env(safe-area-inset-bottom));
   }
 
@@ -2613,6 +2663,42 @@ a {
 
   .field-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Окно на телефоне — во весь экран. Прокручивается только само окно. */
+  .modal-backdrop {
+    padding: 0;
+    place-items: stretch;
+    overscroll-behavior: contain;
+  }
+
+  .modal {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+    /* Во весь экран окно непрозрачное: под ним не просвечивают страница и панель вкладок. */
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+    padding: 0 var(--space-4) max(var(--space-6), env(safe-area-inset-bottom));
+    overscroll-behavior: contain;
+  }
+
+  .modal::before {
+    content: none;
+  }
+
+  /* Заголовок окна прилипает к верху: кнопка «Закрыть» всегда под рукой. */
+  .modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin: 0 calc(-1 * var(--space-4)) var(--space-3);
+    padding: max(var(--space-3), env(safe-area-inset-top)) var(--space-4) var(--space-3);
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
   }
 
   .portion-values {

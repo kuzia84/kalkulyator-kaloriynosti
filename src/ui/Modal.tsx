@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react';
 
 export interface ModalProps {
   title: string;
@@ -25,6 +25,43 @@ export function Modal({ title, onClose, children }: ModalProps) {
     );
     first?.focus();
     return () => previous?.focus?.();
+  }, []);
+
+  // Страница под окном не прокручивается: прокрутка остаётся только у самого окна.
+  useEffect(() => {
+    const root = document.documentElement;
+    const previous = root.style.overflow;
+    root.style.overflow = 'hidden';
+    return () => {
+      root.style.overflow = previous;
+    };
+  }, []);
+
+  // Кнопки окна стоят в один ряд, пока помещаются. Иначе — друг под другом на всю ширину.
+  useLayoutEffect(() => {
+    const modal = ref.current;
+    if (!modal) return;
+    function layout() {
+      for (const row of modal!.querySelectorAll<HTMLElement>('.form-actions, .barcode-actions')) {
+        row.classList.remove('is-stacked');
+        row.classList.add('is-measuring');
+        const overflow = row.scrollWidth > row.clientWidth + 1;
+        row.classList.remove('is-measuring');
+        row.classList.toggle('is-stacked', overflow);
+      }
+    }
+    layout();
+    // jsdom в тестах не знает ResizeObserver: там раскладку не пересчитываем.
+    if (typeof ResizeObserver === 'undefined') return;
+    const resize = new ResizeObserver(layout);
+    resize.observe(modal);
+    // Содержимое окна меняется (другой способ заполнения, найденный продукт): считаем заново.
+    const mutation = new MutationObserver(layout);
+    mutation.observe(modal, { childList: true, subtree: true, characterData: true });
+    return () => {
+      resize.disconnect();
+      mutation.disconnect();
+    };
   }, []);
 
   useEffect(() => {
