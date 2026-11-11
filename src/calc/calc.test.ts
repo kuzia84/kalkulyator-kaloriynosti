@@ -60,6 +60,15 @@ describe('rowNutrients', () => {
     });
   });
 
+  it('строка на границе 0,5: 25 ккал × 58 г = 14,5 → 15', () => {
+    const row = rowNutrients({ per100: n(25, 0.7), weight: '58' })!;
+    expect(row.kcal).toBe(14.5);
+    expect(formatNutrient('kcal', row.kcal)).toBe('15');
+    expect(
+      formatNutrient('protein', rowNutrients({ per100: n(0, 0.7), weight: '150' })!.protein),
+    ).toBe('1,1');
+  });
+
   it('пустой вес — нет значений', () => {
     expect(rowNutrients({ per100: n(100), weight: '' })).toBeNull();
   });
@@ -82,10 +91,11 @@ describe('totals', () => {
     expect(totals([{ weight: '' }, { weight: '' }])).toEqual({ weight: 0, nutrients: n(0) });
   });
 
-  it('вес строки без продукта входит в общий вес, но не в ккал', () => {
+  it('строка без продукта не входит ни в вес, ни в ккал', () => {
     const t = totals([{ per100: n(100), weight: '100' }, { weight: '50' }]);
-    expect(t.weight).toBe(150);
+    expect(t.weight).toBe(100);
     expect(t.nutrients.kcal).toBe(100);
+    expect(per100(t.nutrients, t.weight)?.kcal).toBe(100);
   });
 
   it('хранит полную точность: сумма не копит ошибку округления строк', () => {
@@ -148,6 +158,16 @@ describe('порция', () => {
     expect(dishWeight(0, '')).toBeNull();
     expect(portion(n(0), null, '100')).toBeNull();
   });
+
+  it('вес готового блюда 0 — порции нет, как и строки уварки', () => {
+    expect(dishWeight(500, '0')).toBeNull();
+    expect(dishWeight(500, 'abc')).toBeNull();
+  });
+
+  it('порция без ошибки двоичной дроби', () => {
+    // 25 ккал/100 г × 58 г = 14,5 → 15
+    expect(formatNutrient('kcal', portion(n(25), 100, '58')?.kcal)).toBe('15');
+  });
 });
 
 describe('формула проверки', () => {
@@ -167,6 +187,11 @@ describe('формула проверки', () => {
 
   it('ккал при нулевых БЖУ — подозрительная', () => {
     expect(isSuspicious(n(50))).toBe(true);
+  });
+
+  it('разница меньше 5 ккал — не подозрительная', () => {
+    expect(isSuspicious(n(1, 0.1, 0, 0))).toBe(false);
+    expect(isSuspicious(n(2))).toBe(false);
   });
 });
 
@@ -230,8 +255,15 @@ describe('roundHalfUp', () => {
     expect(roundHalfUp(-2.5)).toBe(-3);
   });
 
-  it('очень малые числа', () => {
+  it('очень малые и очень большие числа', () => {
     expect(roundHalfUp(1e-9, 1)).toBe(0);
+    expect(roundHalfUp(1e20, 1)).toBe(1e20);
+    expect(roundHalfUp(1e25)).toBe(1e25);
+  });
+
+  it('результат умножения на границе 0,5 округляется вверх', () => {
+    expect(roundHalfUp(14.499999999999998)).toBe(15);
+    expect(roundHalfUp(1.0499999999999998, 1)).toBe(1.1);
   });
 });
 

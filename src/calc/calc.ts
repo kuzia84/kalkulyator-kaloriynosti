@@ -7,12 +7,16 @@ export interface RowInput {
   weight: string;
 }
 
-function scale(n: Nutrients, factor: number): Nutrients {
+/**
+ * `x × num / den`. Сначала умножение, потом деление: 25 × 58 / 100 даёт ровно 14,5,
+ * а 25 × 0,58 даёт 14,499999999999998.
+ */
+function ratio(n: Nutrients, num: number, den: number): Nutrients {
   return {
-    kcal: n.kcal * factor,
-    protein: n.protein * factor,
-    fat: n.fat * factor,
-    carbs: n.carbs * factor,
+    kcal: (n.kcal * num) / den,
+    protein: (n.protein * num) / den,
+    fat: (n.fat * num) / den,
+    carbs: (n.carbs * num) / den,
   };
 }
 
@@ -29,7 +33,7 @@ function add(a: Nutrients, b: Nutrients): Nutrients {
 export function rowNutrients(row: RowInput): Nutrients | null {
   const weight = parseWeight(row.weight);
   if (!row.per100 || weight == null) return null;
-  return scale(row.per100, weight / 100);
+  return ratio(row.per100, weight, 100);
 }
 
 export interface Totals {
@@ -39,18 +43,17 @@ export interface Totals {
 
 /**
  * Итоги: суммы весов и пищевой ценности по строкам.
- * Вес строки без продукта тоже входит в общий вес: так пользователь видит,
- * сколько всего продуктов положено в блюдо.
+ * В сумму входят только строки с продуктом и весом. Вес строки без продукта не учитывается:
+ * иначе знаменатель «на 100 г» включал бы вес без калорий, и значения занижались бы.
  */
 export function totals(rows: readonly RowInput[]): Totals {
   let weight = 0;
   let nutrients: Nutrients = { ...ZERO_NUTRIENTS };
   for (const row of rows) {
     const w = parseWeight(row.weight);
-    if (w == null) continue;
+    if (w == null || !row.per100) continue;
     weight += w;
-    const n = rowNutrients(row);
-    if (n) nutrients = add(nutrients, n);
+    nutrients = add(nutrients, ratio(row.per100, w, 100));
   }
   return { weight, nutrients };
 }
@@ -61,7 +64,7 @@ export function totals(rows: readonly RowInput[]): Totals {
  */
 export function per100(total: Nutrients, weight: number | null): Nutrients | null {
   if (weight == null || !Number.isFinite(weight) || weight <= 0) return null;
-  return scale(total, 100 / weight);
+  return ratio(total, 100, weight);
 }
 
 /** Значения на 100 г готового блюда по значению поля «вес готового блюда». */
@@ -69,23 +72,27 @@ export function per100Cooked(total: Nutrients, cookedWeightInput: string): Nutri
   return per100(total, parseWeight(cookedWeightInput));
 }
 
-/** Вес блюда для расчёта порции: вес готового блюда, а если он не задан — сумма весов. */
+/**
+ * Вес блюда для расчёта порции. Поле веса готового блюда пусто — берётся сумма весов.
+ * Поле заполнено нулём или не числом — веса нет (`null`), как и в строке уварки.
+ */
 export function dishWeight(totalWeight: number, cookedWeightInput: string): number | null {
-  const cooked = parseWeight(cookedWeightInput);
-  if (cooked != null && cooked > 0) return cooked;
+  if (cookedWeightInput.trim() !== '') {
+    const cooked = parseWeight(cookedWeightInput);
+    return cooked != null && cooked > 0 ? cooked : null;
+  }
   return totalWeight > 0 ? totalWeight : null;
 }
 
-/** Значения порции: `x_итого / вес_блюда × вес_порции`. */
+/** Значения порции: `x_итого × вес_порции / вес_блюда`. */
 export function portion(
   total: Nutrients,
   dishWeightValue: number | null,
   portionWeightInput: string,
 ): Nutrients | null {
   const portionWeight = parseWeight(portionWeightInput);
-  const base = per100(total, dishWeightValue);
-  if (!base || portionWeight == null) return null;
-  return scale(base, portionWeight / 100);
+  if (dishWeightValue == null || dishWeightValue <= 0 || portionWeight == null) return null;
+  return ratio(total, portionWeight, dishWeightValue);
 }
 
 /** Вес готового блюда больше суммы весов: крупы и макароны впитывают воду. */
@@ -94,12 +101,20 @@ export function isCookedHeavier(totalWeight: number, cookedWeightInput: string):
   return cooked != null && totalWeight > 0 && cooked > totalWeight;
 }
 
+/** Коэффициенты формулы проверки, ккал на 1 г. */
+export const ATWATER = { protein: 4, fat: 9, carbs: 4 } as const;
+
 /** Расчётная калорийность по формуле `Б × 4 + Ж × 9 + У × 4`. Только для проверки записей. */
 export function atwaterKcal(n: Pick<Nutrients, 'protein' | 'fat' | 'carbs'>): number {
-  return n.protein * 4 + n.fat * 9 + n.carbs * 4;
+  return n.protein * ATWATER.protein + n.fat * ATWATER.fat + n.carbs * ATWATER.carbs;
 }
 
 export const SUSPICIOUS_THRESHOLD = 0.15;
+/**
+ * Разница меньше 5 ккал не считается подозрительной: у малокалорийных продуктов
+ * (чай, зелень) значения в источниках округлены, и относительное отклонение велико.
+ */
+export const SUSPICIOUS_MIN_KCAL_DIFF = 5;
 
 /**
  * Относительное отклонение заявленной калорийности от формулы проверки:
@@ -112,17 +127,20 @@ export function kcalDeviation(n: Nutrients): number {
 }
 
 export function isSuspicious(n: Nutrients, threshold = SUSPICIOUS_THRESHOLD): boolean {
-  return kcalDeviation(n) > threshold;
+  return (
+    kcalDeviation(n) > threshold && Math.abs(n.kcal - atwaterKcal(n)) >= SUSPICIOUS_MIN_KCAL_DIFF
+  );
 }
 
 /** Доли белков, жиров и углеводов в калорийности по формуле проверки, в процентах. */
 export function macroEnergyShare(
   n: Nutrients,
 ): { protein: number; fat: number; carbs: number } | null {
-  const p = n.protein * 4;
-  const f = n.fat * 9;
-  const c = n.carbs * 4;
-  const sum = p + f + c;
+  const sum = atwaterKcal(n);
   if (sum <= 0) return null;
-  return { protein: (p / sum) * 100, fat: (f / sum) * 100, carbs: (c / sum) * 100 };
+  return {
+    protein: ((n.protein * ATWATER.protein) / sum) * 100,
+    fat: ((n.fat * ATWATER.fat) / sum) * 100,
+    carbs: ((n.carbs * ATWATER.carbs) / sum) * 100,
+  };
 }
