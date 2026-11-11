@@ -9,6 +9,17 @@ import { useSettings } from '../app/settingsContext';
 import { ProductCombobox } from './ProductCombobox';
 import { COLUMN_LABELS, SHORT_LABELS } from './columns';
 
+function BarcodeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+      <path
+        fill="currentColor"
+        d="M3 5h2v14H3zm3 0h1v14H6zm2 0h2v14H8zm3 0h1v14h-1zm3 0h2v14h-2zm3 0h1v14h-1zm2 0h2v14h-2z"
+      />
+    </svg>
+  );
+}
+
 export interface IngredientRowProps {
   row: DishRow;
   index: number;
@@ -17,12 +28,13 @@ export interface IngredientRowProps {
   onWeightChange: (rowId: string, weight: string) => void;
   onRemove: (rowId: string) => void;
   onManual: (rowId: string, name: string) => void;
+  onBarcode: (rowId: string) => void;
 }
 
 const NO_ITEMS: Suggestion[] = [];
 
 export function IngredientRow(props: IngredientRowProps) {
-  const { row, index, onNameChange, onPick, onWeightChange, onRemove, onManual } = props;
+  const { row, index, onNameChange, onPick, onWeightChange, onRemove, onManual, onBarcode } = props;
   const [open, setOpen] = useState(false);
   // Подсказки ищутся, только пока продукт не выбран: выбранное название — не запрос.
   const query = row.per100 ? '' : row.name;
@@ -49,6 +61,15 @@ export function IngredientRow(props: IngredientRowProps) {
             onManual={(text) => onManual(row.id, text)}
             onOpenChange={onOpenChange}
           />
+          <button
+            type="button"
+            className="button-icon button-barcode"
+            aria-label={`Найти по штрихкоду, строка ${number}`}
+            title="Найти по штрихкоду"
+            onClick={() => onBarcode(row.id)}
+          >
+            <BarcodeIcon />
+          </button>
           <button
             type="button"
             className="button-icon"
