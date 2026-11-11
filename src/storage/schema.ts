@@ -35,6 +35,8 @@ export interface DishRow {
   source?: ProductSource;
   barcode?: string;
   externalId?: string;
+  /** Продукт строки уже записан в справочник (ранг учтён). Сбрасывается при смене продукта. */
+  committed?: boolean;
 }
 
 export interface Dish {

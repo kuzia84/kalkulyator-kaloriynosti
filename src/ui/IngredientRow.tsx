@@ -1,0 +1,94 @@
+import { useCallback, useState } from 'react';
+import { formatNutrient, NUTRIENT_KEYS, rowNutrients, sanitizeDecimalInput } from '../calc';
+import type { PickedProduct } from '../dish/state';
+import type { DishRow } from '../storage/schema';
+import type { Suggestion } from '../search/types';
+import { useSuggestions } from '../search/useSuggestions';
+import { ProductCombobox } from './ProductCombobox';
+import { COLUMN_LABELS, SHORT_LABELS } from './columns';
+
+export interface IngredientRowProps {
+  row: DishRow;
+  index: number;
+  suggestionsLimit: number;
+  onNameChange: (rowId: string, name: string) => void;
+  onPick: (rowId: string, product: PickedProduct) => void;
+  onWeightChange: (rowId: string, weight: string) => void;
+  onRemove: (rowId: string) => void;
+  onManual: (rowId: string, name: string) => void;
+}
+
+const NO_ITEMS: Suggestion[] = [];
+
+function pickedFromSuggestion(s: Suggestion): PickedProduct {
+  return {
+    name: s.name,
+    kcal: s.kcal,
+    protein: s.protein,
+    fat: s.fat,
+    carbs: s.carbs,
+    source: s.source,
+    ...(s.productId ? { productId: s.productId } : {}),
+    ...(s.barcode ? { barcode: s.barcode } : {}),
+    ...(s.externalId ? { externalId: s.externalId } : {}),
+  };
+}
+
+export function IngredientRow(props: IngredientRowProps) {
+  const { row, index, suggestionsLimit, onNameChange, onPick, onWeightChange, onRemove, onManual } =
+    props;
+  const [open, setOpen] = useState(false);
+  // Подсказки ищутся, только пока продукт не выбран: выбранное название — не запрос.
+  const query = row.per100 ? '' : row.name;
+  const { items, loading } = useSuggestions(query, open, suggestionsLimit);
+  const values = rowNutrients(row);
+  const number = index + 1;
+  const onOpenChange = useCallback((v: boolean) => setOpen(v), []);
+
+  return (
+    <tr className={`ingredient-row${open ? ' is-open' : ''}`}>
+      <td className="cell-name" data-label={SHORT_LABELS.name}>
+        <div className="name-cell">
+          <ProductCombobox
+            value={row.name}
+            label={`Ингредиент ${number}`}
+            items={row.per100 ? NO_ITEMS : items}
+            loading={!row.per100 && loading}
+            selected={!!row.per100}
+            onChange={(text) => onNameChange(row.id, text)}
+            onPick={(s) => onPick(row.id, pickedFromSuggestion(s))}
+            onManual={(text) => onManual(row.id, text)}
+            onOpenChange={onOpenChange}
+          />
+          <button
+            type="button"
+            className="button-icon"
+            aria-label={`Удалить строку ${number}`}
+            title="Удалить строку"
+            onClick={() => onRemove(row.id)}
+          >
+            ×
+          </button>
+        </div>
+      </td>
+      <td className="cell-weight" data-label={SHORT_LABELS.weight}>
+        <input
+          className="input input-number"
+          inputMode="decimal"
+          enterKeyHint="done"
+          aria-label={`Вес ингредиента ${number}, г`}
+          placeholder="0"
+          value={row.weight}
+          onChange={(e) => onWeightChange(row.id, sanitizeDecimalInput(e.target.value, 2))}
+        />
+      </td>
+      {NUTRIENT_KEYS.map((key) => (
+        <td key={key} className="cell-number" data-label={SHORT_LABELS[key]}>
+          <output aria-label={`${COLUMN_LABELS[key]}, ингредиент ${number}`}>
+            {formatNutrient(key, values?.[key])}
+          </output>
+        </td>
+      ))}
+    </tr>
+  );
+}
