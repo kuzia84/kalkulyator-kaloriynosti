@@ -680,6 +680,44 @@ h2 {
   cursor: not-allowed;
 }
 
+/* Штрихкод */
+
+.barcode-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.barcode-video {
+  display: block;
+  width: 100%;
+  max-height: 50vh;
+  margin-bottom: 8px;
+  background: #000;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.barcode-video[hidden] {
+  display: none;
+}
+
+.barcode-found {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.barcode-found p {
+  margin: 0 0 8px;
+}
+
+.barcode-manual {
+  margin-top: 16px;
+}
+
 /* Телефон: строки таблицы становятся карточками. */
 
 @media (max-width: 720px) {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { hasContent, initialDishState, pickAction, type DishState } from '../dish/state';
 import type { UseDish } from '../dish/useDish';
+import { BarcodeDialog } from './BarcodeDialog';
 import { DishTable } from './DishTable';
 import { Modal } from './Modal';
 import { ProductForm } from './ProductForm';
@@ -14,7 +15,10 @@ export interface CalculatorPageProps {
 
 export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageProps) {
   const { state, dispatch } = dish;
-  const [manual, setManual] = useState<{ rowId: string; name: string } | null>(null);
+  const [manual, setManual] = useState<{ rowId: string; name: string; barcode?: string } | null>(
+    null,
+  );
+  const [barcodeRow, setBarcodeRow] = useState<string | null>(null);
   // Состояние сразу после очистки. Любая следующая правка убирает возможность вернуть таблицу:
   // иначе отмена стёрла бы то, что пользователь ввёл после очистки.
   const clearedState = useRef<DishState | null>(null);
@@ -78,12 +82,13 @@ export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageP
           dispatch={dispatch}
           onRemoveRow={removeRow}
           onManual={(rowId, name) => setManual({ rowId, name })}
+          onBarcode={setBarcodeRow}
         />
       </div>
       {manual ? (
         <Modal title="Новый продукт" onClose={() => setManual(null)}>
           <ProductForm
-            initial={{ name: manual.name }}
+            initial={{ name: manual.name, ...(manual.barcode ? { barcode: manual.barcode } : {}) }}
             submitLabel="Добавить в таблицу"
             onCancel={() => setManual(null)}
             onSubmit={(value) => {
@@ -92,6 +97,21 @@ export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageP
             }}
           />
         </Modal>
+      ) : null}
+      {barcodeRow ? (
+        <BarcodeDialog
+          rowLabel={`Строка ${state.rows.findIndex((r) => r.id === barcodeRow) + 1}`}
+          onClose={() => setBarcodeRow(null)}
+          onPick={(product) => {
+            dispatch(pickAction(barcodeRow, product));
+            setBarcodeRow(null);
+          }}
+          onManual={(barcode) => {
+            const row = state.rows.find((r) => r.id === barcodeRow);
+            setBarcodeRow(null);
+            setManual({ rowId: barcodeRow, name: row?.per100 ? '' : (row?.name ?? ''), barcode });
+          }}
+        />
       ) : null}
     </section>
   );

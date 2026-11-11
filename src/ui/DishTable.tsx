@@ -20,6 +20,7 @@ export interface DishTableProps {
   dispatch: (action: DishAction) => void;
   onRemoveRow: (rowId: string) => void;
   onManual: (rowId: string, name: string) => void;
+  onBarcode: (rowId: string) => void;
 }
 
 function NutrientCells({ values, label }: { values: Nutrients | null; label: string }) {
@@ -36,7 +37,7 @@ function NutrientCells({ values, label }: { values: Nutrients | null; label: str
   );
 }
 
-export function DishTable({ state, dispatch, onRemoveRow, onManual }: DishTableProps) {
+export function DishTable({ state, dispatch, onRemoveRow, onManual, onBarcode }: DishTableProps) {
   const cookedHintId = useId();
   const total = totals(state.rows);
   const hasWeight = total.weight > 0;
@@ -75,6 +76,7 @@ export function DishTable({ state, dispatch, onRemoveRow, onManual }: DishTableP
             onWeightChange={onWeightChange}
             onRemove={onRemoveRow}
             onManual={onManual}
+            onBarcode={onBarcode}
           />
         ))}
       </tbody>

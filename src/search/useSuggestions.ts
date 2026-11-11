@@ -3,7 +3,7 @@ import { searchLocal } from '../catalog/catalog';
 import { DEFAULT_SETTINGS, SOURCE_LABELS, type Settings } from '../storage/schema';
 import type { ExternalProduct } from './external';
 import { activeSources, MIN_EXTERNAL_QUERY, searchExternal } from './externalSearch';
-import { suggestionFromProduct, type Suggestion } from './types';
+import { suggestionFromExternal, suggestionFromProduct, type Suggestion } from './types';
 
 export interface SuggestionsState {
   items: Suggestion[];
@@ -15,22 +15,6 @@ export interface SuggestionsState {
 
 /** Пауза после ввода перед запросом во внешние источники. */
 export const EXTERNAL_DEBOUNCE_MS = 400;
-
-function suggestionFromExternal(p: ExternalProduct): Suggestion {
-  return {
-    key: p.externalId,
-    name: p.name,
-    kcal: p.kcal,
-    protein: p.protein,
-    fat: p.fat,
-    carbs: p.carbs,
-    source: p.source,
-    externalId: p.externalId,
-    external: true,
-    ...(p.barcode ? { barcode: p.barcode } : {}),
-    ...(p.detail ? { detail: p.detail } : {}),
-  };
-}
 
 /** Внешние результаты без тех, что уже есть в справочнике. */
 export function mergeSuggestions(local: Suggestion[], external: ExternalProduct[]): Suggestion[] {

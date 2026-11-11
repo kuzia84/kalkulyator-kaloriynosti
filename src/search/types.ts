@@ -1,5 +1,5 @@
 import type { Nutrients } from '../calc';
-import type { Product, ProductSource } from '../storage/schema';
+import type { ExternalProductRecord, Product, ProductSource } from '../storage/schema';
 
 /** Пункт списка подсказок: продукт из справочника или из внешнего источника. */
 export interface Suggestion extends Nutrients {
@@ -29,5 +29,21 @@ export function suggestionFromProduct(p: Product): Suggestion {
     external: false,
     ...(p.barcode ? { barcode: p.barcode } : {}),
     ...(p.externalId ? { externalId: p.externalId } : {}),
+  };
+}
+
+export function suggestionFromExternal(p: ExternalProductRecord): Suggestion {
+  return {
+    key: p.externalId,
+    name: p.name,
+    kcal: p.kcal,
+    protein: p.protein,
+    fat: p.fat,
+    carbs: p.carbs,
+    source: p.source,
+    externalId: p.externalId,
+    external: true,
+    ...(p.barcode ? { barcode: p.barcode } : {}),
+    ...(p.detail ? { detail: p.detail } : {}),
   };
 }
