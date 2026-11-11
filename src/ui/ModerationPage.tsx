@@ -1,11 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { atwaterKcal, formatNutrient, isSuspicious, kcalDeviation, NUTRIENT_KEYS } from '../calc';
+import {
+  atwaterKcal,
+  formatNutrient,
+  isSuspicious,
+  kcalDeviation,
+  NUTRIENT_KEYS,
+  SUSPICIOUS_MIN_KCAL_DIFF,
+  SUSPICIOUS_THRESHOLD,
+} from '../calc';
 import {
   deleteProduct,
   filterProducts,
-  mergeProducts,
   restoreProducts,
-  unmergeProducts,
   updateProduct,
   type ProductFilter,
   type SortDir,
@@ -13,7 +19,7 @@ import {
 } from '../catalog/moderation';
 import { db } from '../storage/db';
 import { SOURCE_LABELS, type Product, type ProductSource } from '../storage/schema';
-import { SHORT_LABELS } from './columns';
+import { AddProductDialog } from './AddProductDialog';
 import { Modal } from './Modal';
 import { ProductForm } from './ProductForm';
 import type { UndoEntry } from './UndoToast';
@@ -34,33 +40,110 @@ const SORT_LABELS: Record<SortKey, string> = {
   lastUsedAt: 'Использован',
 };
 
+/** Подписи значений в карточке на узком экране. */
+const CHIP_LABELS: Record<(typeof NUTRIENT_KEYS)[number], string> = {
+  kcal: 'ккал',
+  protein: 'белки',
+  fat: 'жиры',
+  carbs: 'углев.',
+};
+
+/** Пункты списка «Сортировка». Он нужен на узком экране: там нет заголовков колонок. */
+const SORT_OPTIONS: { key: SortKey; dir: SortDir; label: string }[] = [
+  { key: 'name', dir: 'asc', label: 'Название, А → Я' },
+  { key: 'name', dir: 'desc', label: 'Название, Я → А' },
+  { key: 'rank', dir: 'desc', label: 'Сначала частые' },
+  { key: 'lastUsedAt', dir: 'desc', label: 'Сначала недавние' },
+  { key: 'kcal', dir: 'desc', label: 'Ккал, больше сначала' },
+  { key: 'kcal', dir: 'asc', label: 'Ккал, меньше сначала' },
+  { key: 'protein', dir: 'desc', label: 'Белки, больше сначала' },
+  { key: 'protein', dir: 'asc', label: 'Белки, меньше сначала' },
+  { key: 'fat', dir: 'desc', label: 'Жиры, больше сначала' },
+  { key: 'fat', dir: 'asc', label: 'Жиры, меньше сначала' },
+  { key: 'carbs', dir: 'desc', label: 'Углеводы, больше сначала' },
+  { key: 'carbs', dir: 'asc', label: 'Углеводы, меньше сначала' },
+  { key: 'rank', dir: 'asc', label: 'Сначала редкие' },
+  { key: 'lastUsedAt', dir: 'asc', label: 'Сначала давние' },
+];
+
+const THRESHOLD_PERCENT = Math.round(SUSPICIOUS_THRESHOLD * 100);
+
+const EMPTY_FILTER: ProductFilter = {
+  query: '',
+  source: 'all',
+  verified: 'all',
+  suspiciousOnly: false,
+};
+
 const dateFormatter = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short' });
 
 type Dialog =
+  | { kind: 'add'; name: string }
   | { kind: 'edit'; product: Product }
   | { kind: 'delete'; product: Product }
-  | { kind: 'merge'; products: Product[] }
   | null;
 
+/** Насколько заявленная калорийность выше или ниже расчётной по БЖУ: «+23 %», «−40 %». */
 function deviationLabel(p: Product): string {
-  const d = kcalDeviation(p);
-  return Number.isFinite(d) ? `${Math.round(d * 100)} %` : 'нет БЖУ';
+  const deviation = kcalDeviation(p);
+  if (!Number.isFinite(deviation)) return 'нет БЖУ, есть ккал';
+  // Вверх: отмеченная запись с отклонением 15,2 % не должна показывать «15 %».
+  const percent = Math.ceil(deviation * 100 - 1e-9);
+  return `${p.kcal > atwaterKcal(p) ? '+' : '−'}${percent} %`;
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      className="icon"
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function WarningIcon() {
+  return (
+    <svg
+      className="icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M12 3 2 21h20L12 3Zm0 6v6m0 3v.01"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
 export function ModerationPage({ offerUndo }: ModerationPageProps) {
   const [products, setProducts] = useState<Product[] | null>(null);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState<ProductFilter>({
-    query: '',
-    source: 'all',
-    verified: 'all',
-    suspiciousOnly: false,
-  });
+  const [notice, setNotice] = useState('');
+  const [filter, setFilter] = useState<ProductFilter>(EMPTY_FILTER);
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: 'name', dir: 'asc' });
   const [shown, setShown] = useState(PAGE_SIZE);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [dialog, setDialog] = useState<Dialog>(null);
-  const [mergeTarget, setMergeTarget] = useState('');
 
   const reload = useCallback(async () => {
     try {
@@ -78,13 +161,6 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
     () => (products ? filterProducts(products, filter, sort) : []),
     [products, filter, sort],
   );
-
-  // Выбор для объединения живёт только среди существующих записей.
-  useEffect(() => {
-    if (!products) return;
-    const ids = new Set(products.map((p) => p.id));
-    setSelected((prev) => new Set([...prev].filter((id) => ids.has(id))));
-  }, [products]);
 
   function toggleSort(key: SortKey) {
     setSort((s) =>
@@ -126,6 +202,33 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
     void patch(p.id, { verified: !p.verified });
   }
 
+  function openAdd() {
+    setNotice('');
+    // Пустой результат поиска — частая причина добавить продукт: название уже введено.
+    setDialog({ kind: 'add', name: visible.length === 0 ? filter.query.trim() : '' });
+  }
+
+  function showOnly(name: string) {
+    setFilter({ ...EMPTY_FILTER, query: name });
+    setShown(PAGE_SIZE);
+  }
+
+  async function onAdded(added: Product) {
+    setDialog(null);
+    showOnly(added.name);
+    await reload();
+    offerUndo({
+      message: `Продукт «${added.name}» добавлен.`,
+      undo: () => void run(async () => void (await deleteProduct(added.id))),
+    });
+  }
+
+  function onExisting(name: string) {
+    setDialog(null);
+    showOnly(name);
+    setNotice(`Продукт «${name}» уже есть в справочнике. Он показан в списке.`);
+  }
+
   function confirmDelete(p: Product) {
     setDialog(null);
     void run(async () => {
@@ -138,37 +241,20 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
     });
   }
 
-  function confirmMerge(targetId: string, ids: string[]) {
-    setDialog(null);
-    void run(async () => {
-      const result = await mergeProducts(targetId, ids);
-      setSelected(new Set());
-      offerUndo({
-        message: `Объединено записей: ${result.removed.length + 1}.`,
-        undo: () => void run(() => unmergeProducts(result)),
-      });
-    });
-  }
-
-  const selectedProducts = (products ?? []).filter((p) => selected.has(p.id));
+  const sortValue = `${sort.key}:${sort.dir}`;
+  // «Такого продукта нет» верно, только если результат сузил один поиск, а не другие фильтры.
+  const onlyQueryFilter =
+    filter.source === 'all' && filter.verified === 'all' && !filter.suspiciousOnly;
 
   return (
-    <section aria-labelledby="mod-title">
+    <section aria-labelledby="mod-title" className="catalog">
       <div className="page-header">
         <h1 className="page-title" tabIndex={-1} id="mod-title">
           Справочник продуктов
         </h1>
         <div className="page-actions">
-          <button
-            type="button"
-            className="button"
-            disabled={selectedProducts.length < 2}
-            onClick={() => {
-              setMergeTarget(selectedProducts[0]?.id ?? '');
-              setDialog({ kind: 'merge', products: selectedProducts });
-            }}
-          >
-            Объединить выбранные{selectedProducts.length > 0 ? ` (${selectedProducts.length})` : ''}
+          <button type="button" className="button button-primary" onClick={openAdd}>
+            Добавить продукт
           </button>
         </div>
       </div>
@@ -178,7 +264,7 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
       </p>
 
       <div className="filters card">
-        <label className="field">
+        <label className="field filters-query">
           <span>Поиск</span>
           <input
             className="input"
@@ -217,18 +303,65 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
             <option value="no">Не проверено</option>
           </select>
         </label>
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={filter.suspiciousOnly}
-            onChange={(e) => setFilterField('suspiciousOnly', e.target.checked)}
-          />
-          <span>
-            Подозрительная калорийность
-            <span className="hint">Отличие от Б×4 + Ж×9 + У×4 больше 15 %</span>
-          </span>
+        <label className="field filters-sort">
+          <span>Сортировка</span>
+          <select
+            className="input"
+            value={sortValue}
+            onChange={(e) => {
+              const [key, dir] = e.target.value.split(':') as [SortKey, SortDir];
+              setSort({ key, dir });
+            }}
+          >
+            {SORT_OPTIONS.map((o) => (
+              <option key={`${o.key}:${o.dir}`} value={`${o.key}:${o.dir}`}>
+                {o.label}
+              </option>
+            ))}
+          </select>
         </label>
+        <div className="filters-suspicious">
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={filter.suspiciousOnly}
+              onChange={(e) => setFilterField('suspiciousOnly', e.target.checked)}
+            />
+            <span>
+              Калорийность не сходится с БЖУ
+              <span className="hint">Показать только записи, где стоит проверить цифры.</span>
+            </span>
+          </label>
+          <details className="explainer">
+            <summary>Как это проверяется?</summary>
+            <p>
+              Калорийность можно посчитать по БЖУ: 1 г белков — 4 ккал, 1 г жиров — 9 ккал, 1 г
+              углеводов — 4 ккал. Например, 10 г белков, 5 г жиров и 20 г углеводов дают 40 + 45 +
+              80 = 165 ккал.
+            </p>
+            <p>
+              Запись получает отметку, если указанная калорийность отличается от расчётной больше
+              чем на {THRESHOLD_PERCENT} % и не меньше чем на {SUSPICIOUS_MIN_KCAL_DIFF} ккал.
+              Второе условие нужно для малокалорийных продуктов: у чая или зелени даже 2 ккал
+              разницы дают большой процент.
+            </p>
+            <p>
+              Частые причины: опечатка, значения не на 100 г, перепутаны белки и жиры. У продуктов с
+              алкоголем, клетчаткой или сахарозаменителями формула тоже даёт неточный результат.
+            </p>
+            <p>
+              Отметка — повод сверить цифры с упаковкой, а не ошибка. Если значения верные, отметьте
+              запись как проверенную.
+            </p>
+          </details>
+        </div>
       </div>
+
+      {notice ? (
+        <p className="note" role="status">
+          {notice}
+        </p>
+      ) : null}
 
       {error ? (
         <p className="warning" role="alert">
@@ -245,18 +378,24 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
           <p className="hint" role="status">
             Найдено: {visible.length} из {products.length}.
           </p>
-          <div className="table-wrap">
-            <table className="data-table">
+          {visible.length === 0 && onlyQueryFilter && filter.query.trim() !== '' ? (
+            <div className="empty-state">
+              <p>Такого продукта в справочнике нет.</p>
+              <button type="button" className="button" onClick={openAdd}>
+                Добавить «{filter.query.trim()}»
+              </button>
+            </div>
+          ) : null}
+          <div className="table-wrap catalog-wrap">
+            <table className="data-table catalog-table">
               <caption className="visually-hidden">Продукты справочника</caption>
               <thead>
                 <tr>
-                  <th scope="col">
-                    <span className="visually-hidden">Выбрать для объединения</span>
-                  </th>
-                  {(['name', ...NUTRIENT_KEYS, 'rank', 'lastUsedAt'] as SortKey[]).map((key) => (
+                  {(['name', ...NUTRIENT_KEYS] as SortKey[]).map((key) => (
                     <th
                       key={key}
                       scope="col"
+                      className={key === 'name' ? 'col-name' : 'col-number'}
                       aria-sort={
                         sort.key === key
                           ? sort.dir === 'asc'
@@ -273,9 +412,10 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
                       </button>
                     </th>
                   ))}
-                  <th scope="col">Источник</th>
-                  <th scope="col">Проверено</th>
-                  <th scope="col">
+                  <th scope="col" className="col-verified">
+                    Проверено
+                  </th>
+                  <th scope="col" className="col-actions">
                     <span className="visually-hidden">Действия</span>
                   </th>
                 </tr>
@@ -285,53 +425,42 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
                   const suspicious = isSuspicious(p);
                   return (
                     <tr key={p.id} className={suspicious ? 'is-suspicious' : undefined}>
-                      <td className="cell-select">
-                        <input
-                          type="checkbox"
-                          aria-label={`Выбрать «${p.name}» для объединения`}
-                          checked={selected.has(p.id)}
-                          onChange={(e) =>
-                            setSelected((prev) => {
-                              const next = new Set(prev);
-                              if (e.target.checked) next.add(p.id);
-                              else next.delete(p.id);
-                              return next;
-                            })
-                          }
-                        />
-                      </td>
-                      <td className="cell-title" data-label="Название">
-                        <span>{p.name}</span>
-                        {p.barcode ? <span className="option-detail"> · {p.barcode}</span> : null}
+                      <td className="cell-title">
+                        <span className="product-name">{p.name}</span>
+                        {p.barcode ? <span className="product-barcode">{p.barcode}</span> : null}
+                        <span className="product-meta">
+                          {SOURCE_LABELS[p.source]} · ранг {p.rank}
+                          {p.lastUsedAt ? ` · ${dateFormatter.format(p.lastUsedAt)}` : ''}
+                        </span>
                         {suspicious ? (
-                          <span
-                            className="badge badge-warning"
-                            title={`По формуле ${formatNutrient('kcal', atwaterKcal(p))} ккал`}
-                          >
-                            ≠ формуле: {deviationLabel(p)}
+                          <span className="suspicious-note">
+                            <span className="badge badge-warning">
+                              <WarningIcon />
+                              Не сходится: {deviationLabel(p)}
+                            </span>
+                            <span className="suspicious-expected">
+                              по БЖУ {formatNutrient('kcal', atwaterKcal(p))} ккал
+                            </span>
                           </span>
                         ) : null}
                       </td>
                       {NUTRIENT_KEYS.map((key) => (
-                        <td key={key} className="cell-number" data-label={SHORT_LABELS[key]}>
+                        <td
+                          key={key}
+                          className={`cell-number cell-${key}`}
+                          data-label={CHIP_LABELS[key]}
+                        >
                           {formatNutrient(key, p[key])}
                         </td>
                       ))}
-                      <td className="cell-number" data-label="Ранг">
-                        {p.rank}
-                      </td>
-                      <td className="cell-number" data-label="Использован">
-                        {p.lastUsedAt ? dateFormatter.format(p.lastUsedAt) : '—'}
-                      </td>
-                      <td data-label="Источник">{SOURCE_LABELS[p.source]}</td>
-                      <td data-label="Проверено">
+                      <td className="cell-verified">
                         <label className="checkbox checkbox-compact">
                           <input
                             type="checkbox"
                             checked={p.verified}
                             onChange={() => toggleVerified(p)}
                           />
-                          <span>{p.verified ? 'Да' : 'Нет'}</span>
+                          <span>{p.verified ? 'Проверено' : 'Не проверено'}</span>
                         </label>
                       </td>
                       <td className="cell-actions">
@@ -345,11 +474,12 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
                         </button>
                         <button
                           type="button"
-                          className="button button-small button-danger"
+                          className="button button-small button-danger button-delete"
                           onClick={() => setDialog({ kind: 'delete', product: p })}
                           aria-label={`Удалить «${p.name}»`}
                         >
-                          Удалить
+                          <TrashIcon />
+                          <span className="button-label">Удалить</span>
                         </button>
                       </td>
                     </tr>
@@ -369,6 +499,15 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
           ) : null}
         </>
       )}
+
+      {dialog?.kind === 'add' ? (
+        <AddProductDialog
+          initialName={dialog.name}
+          onClose={() => setDialog(null)}
+          onAdded={(p) => void onAdded(p)}
+          onExisting={onExisting}
+        />
+      ) : null}
 
       {dialog?.kind === 'edit' ? (
         <Modal title="Изменить продукт" onClose={() => setDialog(null)}>
@@ -401,54 +540,6 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
               onClick={() => confirmDelete(dialog.product)}
             >
               Удалить
-            </button>
-          </div>
-        </Modal>
-      ) : null}
-
-      {dialog?.kind === 'merge' ? (
-        <Modal title="Объединить дубликаты" onClose={() => setDialog(null)}>
-          <fieldset className="merge-list">
-            <legend>Какую запись оставить? Её название и значения сохранятся.</legend>
-            {dialog.products.map((p) => (
-              <label key={p.id} className="checkbox">
-                <input
-                  type="radio"
-                  name="merge-target"
-                  value={p.id}
-                  checked={mergeTarget === p.id}
-                  onChange={() => setMergeTarget(p.id)}
-                />
-                <span>
-                  <strong>{p.name}</strong>
-                  <span className="hint">
-                    {formatNutrient('kcal', p.kcal)} ккал · Б {formatNutrient('protein', p.protein)}{' '}
-                    · Ж {formatNutrient('fat', p.fat)} · У {formatNutrient('carbs', p.carbs)} ·{' '}
-                    {SOURCE_LABELS[p.source]} · ранг {p.rank}
-                  </span>
-                </span>
-              </label>
-            ))}
-          </fieldset>
-          <p className="hint">
-            Остальные записи удалятся, их ранги прибавятся к оставшейся записи.
-          </p>
-          <div className="form-actions">
-            <button type="button" className="button" onClick={() => setDialog(null)}>
-              Отмена
-            </button>
-            <button
-              type="button"
-              className="button button-primary"
-              disabled={!mergeTarget}
-              onClick={() =>
-                confirmMerge(
-                  mergeTarget,
-                  dialog.products.map((p) => p.id),
-                )
-              }
-            >
-              Объединить
             </button>
           </div>
         </Modal>

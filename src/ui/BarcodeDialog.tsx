@@ -18,6 +18,16 @@ export interface BarcodeDialogProps {
   onClose: () => void;
 }
 
+export interface BarcodeScannerProps {
+  /** Первое предложение подсказки: для чего ищется код. */
+  context: string;
+  /** Подпись кнопки под найденным продуктом. Может зависеть от продукта. */
+  pickLabel: string | ((product: Suggestion) => string);
+  onPick: (product: Suggestion) => void;
+  /** Продукт не найден: перейти к ручному вводу с этим кодом. */
+  onManual: (barcode: string) => void;
+}
+
 type Phase =
   | { kind: 'idle' }
   | { kind: 'camera' }
@@ -32,7 +42,25 @@ type Phase =
 const UNREADABLE =
   'Не удалось распознать штрихкод. Сделайте новое фото: код целиком в кадре, ровно и при хорошем свете. Или введите цифры под штрихкодом вручную.';
 
+/** Окно поиска по штрихкоду для строки блюда. */
 export function BarcodeDialog({ rowLabel, onPick, onManual, onClose }: BarcodeDialogProps) {
+  return (
+    <Modal title="Поиск по штрихкоду" onClose={onClose}>
+      <BarcodeScanner
+        context={`${rowLabel}.`}
+        pickLabel="Добавить в таблицу"
+        onPick={onPick}
+        onManual={onManual}
+      />
+    </Modal>
+  );
+}
+
+/**
+ * Поиск продукта по штрихкоду: фото, камера или цифры вручную.
+ * Сначала справочник на устройстве, потом внешние источники. Без окна: его даёт вызывающий.
+ */
+export function BarcodeScanner({ context, pickLabel, onPick, onManual }: BarcodeScannerProps) {
   const { settings } = useSettings();
   const online = useOnline();
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
@@ -167,9 +195,9 @@ export function BarcodeDialog({ rowLabel, onPick, onManual, onClose }: BarcodeDi
   }
 
   return (
-    <Modal title="Поиск по штрихкоду" onClose={onClose}>
+    <>
       <p className="hint">
-        {rowLabel}. Штрихкод распознаётся на устройстве, фото никуда не отправляется.
+        {context} Штрихкод распознаётся на устройстве, фото никуда не отправляется.
       </p>
       <div className="barcode-actions">
         <button type="button" className="button" onClick={() => cameraInput.current?.click()}>
@@ -251,7 +279,7 @@ export function BarcodeDialog({ rowLabel, onPick, onManual, onClose }: BarcodeDi
               className="button button-primary"
               onClick={() => onPick(phase.product)}
             >
-              Добавить в таблицу
+              {typeof pickLabel === 'function' ? pickLabel(phase.product) : pickLabel}
             </button>
           </div>
         ) : null}
@@ -286,6 +314,6 @@ export function BarcodeDialog({ rowLabel, onPick, onManual, onClose }: BarcodeDi
           </span>
         ) : null}
       </form>
-    </Modal>
+    </>
   );
 }
