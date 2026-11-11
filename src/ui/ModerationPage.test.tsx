@@ -60,7 +60,7 @@ describe('страница модерации', () => {
   it('фильтр подозрительной калорийности', async () => {
     await db.products.update('sk-023', { kcal: 90 });
     const user = await renderPage();
-    await user.click(screen.getByRole('checkbox', { name: /Калорийность не сходится с БЖУ/ }));
+    await user.click(screen.getByRole('button', { name: 'Не сходится с БЖУ' }));
     expect(screen.getByText(/Найдено: 1 из/)).toBeInTheDocument();
     const row = screen.getByText('Тыква').closest('tr')!;
     // Тыква: Б 1, Ж 0,1, У 4,4 — по БЖУ 22,5 ккал, указано 90.
@@ -225,7 +225,11 @@ describe('страница модерации', () => {
 
   it('пустой результат из-за фильтра не предлагает добавить продукт', async () => {
     const user = await renderPage();
-    await user.selectOptions(screen.getByLabelText('Проверено'), 'Проверено');
+    await user.click(
+      within(screen.getByRole('group', { name: 'Фильтры' })).getByRole('button', {
+        name: 'Проверено',
+      }),
+    );
     await user.type(screen.getByLabelText('Поиск'), 'тыква');
     expect(screen.getByText(/Найдено: 0 из/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Добавить «тыква»' })).not.toBeInTheDocument();

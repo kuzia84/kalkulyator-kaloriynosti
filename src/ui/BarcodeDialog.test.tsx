@@ -21,7 +21,8 @@ async function openDialog(mode: 'По штрихкоду' | 'Найти в се�
   const user = userEvent.setup();
   render(<App />);
   await screen.findByRole('table');
-  await user.click(screen.getByRole('button', { name: 'Новый продукт, строка 1' }));
+  await user.click(screen.getByRole('button', { name: 'Действия, строка 1' }));
+  await user.click(screen.getByRole('menuitem', { name: 'Новый продукт, строка 1' }));
   const dialog = screen.getByRole('dialog', { name: 'Новый продукт' });
   await user.click(within(dialog).getByRole('button', { name: mode }));
   return { user, dialog };

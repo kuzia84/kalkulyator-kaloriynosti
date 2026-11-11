@@ -3,6 +3,7 @@ import { dishContentKey, dishReducer, type DishState } from '../dish/state';
 import { useCatalogCommits } from '../dish/useCatalogCommits';
 import { getRecipe, RecipeNotFoundError, recipeToState, updateRecipe } from '../storage/recipes';
 import { DishSummary } from './DishSummary';
+import { HeaderActions } from './HeaderActions';
 import { IngredientsEditor } from './IngredientsEditor';
 import { Modal } from './Modal';
 import type { UndoEntry } from './UndoToast';
@@ -128,20 +129,20 @@ function RecipeForm({ initial, offerUndo, dismissUndo, onDone }: RecipeFormProps
         <h1 className="page-title" tabIndex={-1} id="recipe-edit-title" ref={titleRef}>
           Правка рецепта
         </h1>
-        <div className="page-actions">
-          <button type="button" className="button" onClick={cancel}>
-            Отмена
-          </button>
-          <button
-            type="button"
-            className="button button-primary"
-            disabled={saving}
-            onClick={() => void save()}
-          >
-            Сохранить
-          </button>
-        </div>
       </div>
+      <HeaderActions>
+        <button type="button" className="button" onClick={cancel}>
+          Отмена
+        </button>
+        <button
+          type="button"
+          className="button button-primary"
+          disabled={saving}
+          onClick={() => void save()}
+        >
+          Сохранить
+        </button>
+      </HeaderActions>
       <p className="hint">
         Измените вес, замените или добавьте ингредиенты. Калорийность и БЖУ пересчитываются сразу.
         Рецепт меняется только после нажатия «Сохранить».
@@ -151,26 +152,28 @@ function RecipeForm({ initial, offerUndo, dismissUndo, onDone }: RecipeFormProps
           {error}
         </p>
       ) : null}
-      <IngredientsEditor state={state} dispatch={dispatch} onRemoveRow={removeRow} />
-      <DishSummary
-        state={state}
-        dispatch={dispatch}
-        actions={
-          <div className="form-actions form-actions-start no-print">
-            <button
-              type="button"
-              className="button button-primary"
-              disabled={saving}
-              onClick={() => void save()}
-            >
-              Сохранить изменения
-            </button>
-            <button type="button" className="button" onClick={cancel}>
-              Отмена
-            </button>
-          </div>
-        }
-      />
+      <div className="calc-layout">
+        <IngredientsEditor state={state} dispatch={dispatch} onRemoveRow={removeRow} />
+        <DishSummary
+          state={state}
+          dispatch={dispatch}
+          actions={
+            <div className="form-actions form-actions-start no-print">
+              <button
+                type="button"
+                className="button button-primary"
+                disabled={saving}
+                onClick={() => void save()}
+              >
+                Сохранить изменения
+              </button>
+              <button type="button" className="button" onClick={cancel}>
+                Отмена
+              </button>
+            </div>
+          }
+        />
+      </div>
       {confirmLeave ? (
         <Modal title="Выйти без сохранения?" onClose={() => setConfirmLeave(false)}>
           <p>Изменения в рецепте «{initial.name}» не сохранены и пропадут.</p>

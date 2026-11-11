@@ -96,7 +96,8 @@ describe('калькулятор', () => {
   it('удаление строки отменяется', async () => {
     const user = await renderApp();
     await user.type(screen.getByLabelText('Вес ингредиента 2, г'), '50');
-    await user.click(screen.getByRole('button', { name: 'Удалить строку 2' }));
+    await user.click(screen.getByRole('button', { name: 'Действия, строка 2' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Удалить строку 2' }));
     expect(screen.getAllByRole('combobox')).toHaveLength(3);
     await user.click(screen.getByRole('button', { name: 'Отменить' }));
     expect(screen.getAllByRole('combobox')).toHaveLength(4);
@@ -213,6 +214,33 @@ describe('настройки', () => {
     await user.type(key, 'my-key');
     await user.click(screen.getByRole('button', { name: 'Сохранить' }));
     await waitFor(async () => expect((await db.settings.get('app'))?.usdaApiKey).toBe('my-key'));
+  });
+
+  it('стиль оформления выбирается отдельно от цветовой схемы и сохраняется', async () => {
+    const user = userEvent.setup();
+    window.location.hash = '#/settings';
+    render(<App />);
+    const style = await screen.findByRole('radiogroup', { name: 'Стиль' });
+    const scheme = screen.getByRole('radiogroup', { name: 'Цветовая схема' });
+    // По умолчанию — «Стекло»: у <html> нет атрибута data-skin.
+    expect(within(style).getByRole('radio', { name: 'Стекло' })).toBeChecked();
+    expect(document.documentElement).not.toHaveAttribute('data-skin');
+
+    await user.click(within(style).getByRole('radio', { name: 'Этикетка' }));
+    await user.click(within(scheme).getByRole('radio', { name: 'Тёмная' }));
+    expect(document.documentElement).toHaveAttribute('data-skin', 'label');
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+    expect(localStorage.getItem('kk-skin')).toBe('label');
+    await waitFor(async () => {
+      const saved = await db.settings.get('app');
+      expect(saved?.skin).toBe('label');
+      expect(saved?.theme).toBe('dark');
+    });
+
+    await user.click(within(style).getByRole('radio', { name: 'Стекло' }));
+    expect(document.documentElement).not.toHaveAttribute('data-skin');
+    // Цветовая схема не сбросилась при смене стиля.
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
   });
 });
 

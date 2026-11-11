@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { pickAction, type DishAction, type DishState } from '../dish/state';
 import { suggestionFromProduct } from '../search/types';
 import type { Product } from '../storage/schema';
@@ -22,6 +22,25 @@ export function IngredientsEditor({ state, dispatch, onRemoveRow }: IngredientsE
   const [manual, setManual] = useState<{ rowId: string; name: string } | null>(null);
   const [searchRowId, setSearchRowId] = useState<string | null>(null);
   const searchRow = state.rows.find((r) => r.id === searchRowId);
+  // Кнопка штрихкода без свободной строки сначала добавляет строку: окно откроется для неё.
+  const [scanPending, setScanPending] = useState(false);
+
+  useEffect(() => {
+    if (!scanPending) return;
+    setScanPending(false);
+    const last = state.rows[state.rows.length - 1];
+    if (last) setSearchRowId(last.id);
+  }, [scanPending, state.rows]);
+
+  function scanNew() {
+    const free = state.rows.find((r) => !r.per100 && r.name.trim() === '');
+    if (free) {
+      setSearchRowId(free.id);
+      return;
+    }
+    dispatch({ type: 'addRow' });
+    setScanPending(true);
+  }
 
   function pickIntoRow(rowId: string, product: Product) {
     dispatch(pickAction(rowId, suggestionFromProduct(product)));
@@ -37,6 +56,7 @@ export function IngredientsEditor({ state, dispatch, onRemoveRow }: IngredientsE
           onRemoveRow={onRemoveRow}
           onManual={(rowId, name) => setManual({ rowId, name })}
           onBarcode={setSearchRowId}
+          onScanNew={scanNew}
         />
       </div>
       {manual ? (

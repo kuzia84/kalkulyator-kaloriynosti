@@ -10,7 +10,10 @@ import {
   restoreRecipe,
 } from '../storage/recipes';
 import type { Dish } from '../storage/schema';
+import { ActionMenu } from './ActionMenu';
+import { SearchIcon } from './icons';
 import { Modal } from './Modal';
+import { ingredientsCount } from './plural';
 import { RecipeEditor } from './RecipeEditor';
 import type { UndoEntry } from './UndoToast';
 
@@ -23,21 +26,19 @@ export interface RecipesPageProps {
   onOpened: () => void;
 }
 
-const dateFormatter = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium' });
-
-function summary(recipe: Dish): string {
+/** Плашки под названием рецепта: калорийность на 100 г, число ингредиентов, вес. */
+function summary(recipe: Dish): { kcal: string | null; count: string; weight: string } {
   const t = totals(recipe.rows);
   const cooked = per100Cooked(t.nutrients, recipe.cookedWeight);
   const raw = per100(t.nutrients, t.weight);
   const base = cooked ?? raw;
-  const parts = [
-    `${recipe.rows.filter((r) => r.per100).length} ингр.`,
-    `вес ${formatWeight(t.weight > 0 ? t.weight : null)} г`,
-  ];
-  if (base) {
-    parts.push(`${formatNutrient('kcal', base.kcal)} ккал на 100 г${cooked ? ' готового' : ''}`);
-  }
-  return parts.join(' · ');
+  return {
+    kcal: base
+      ? `${formatNutrient('kcal', base.kcal)} ккал / 100 г${cooked ? ' готового' : ''}`
+      : null,
+    count: ingredientsCount(recipe.rows.filter((r) => r.per100).length),
+    weight: `${formatWeight(t.weight > 0 ? t.weight : null)} г`,
+  };
 }
 
 export function RecipesPage(props: RecipesPageProps) {
@@ -102,6 +103,7 @@ function RecipeList({
   const [recipes, setRecipes] = useState<Dish[] | null>(null);
   const [error, setError] = useState('');
   const [confirmOpen, setConfirmOpen] = useState<Dish | null>(null);
+  const [query, setQuery] = useState('');
 
   const reload = useCallback(async () => {
     try {
@@ -185,6 +187,19 @@ function RecipeList({
           {error}
         </p>
       ) : null}
+      {recipes != null && recipes.length > 0 ? (
+        <label className="search-field">
+          <SearchIcon />
+          <input
+            className="search-input"
+            type="search"
+            placeholder="Найти рецепт"
+            aria-label="Найти рецепт"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </label>
+      ) : null}
       {recipes == null ? (
         <p className="hint" role="status">
           Загружаем рецепты…
@@ -195,43 +210,50 @@ function RecipeList({
         </p>
       ) : (
         <ul className="recipe-list">
-          {recipes.map((r) => (
-            <li key={r.id} className="card recipe-item">
-              <div>
-                <h2>{r.name}</h2>
-                <p className="hint">{summary(r)}</p>
-                {r.note ? <p className="recipe-note">{r.note}</p> : null}
-                <p className="hint">Изменён {dateFormatter.format(r.updatedAt)}</p>
-              </div>
-              <div className="form-actions form-actions-start recipe-actions">
-                <button
-                  type="button"
-                  className="button button-primary"
-                  onClick={() => (hasContent(current) ? setConfirmOpen(r) : open(r))}
-                >
-                  Открыть
-                </button>
-                <a
-                  className="button"
-                  href={recipeEditHash(r.id)}
-                  aria-label={`Изменить рецепт «${r.name}»`}
-                >
-                  Изменить
-                </a>
-                <button type="button" className="button" onClick={() => void copy(r)}>
-                  Копировать
-                </button>
-                <button
-                  type="button"
-                  className="button button-danger"
-                  onClick={() => void remove(r)}
-                  aria-label={`Удалить рецепт «${r.name}»`}
-                >
-                  Удалить
-                </button>
-              </div>
-            </li>
-          ))}
+          {recipes
+            .filter((r) => r.name.toLowerCase().includes(query.trim().toLowerCase()))
+            .map((r) => {
+              const info = summary(r);
+              return (
+                <li key={r.id} className="card recipe-item">
+                  <h2>{r.name}</h2>
+                  <p className="chips">
+                    {info.kcal ? <span className="chip chip-accent">{info.kcal}</span> : null}
+                    <span className="chip">{info.count}</span>
+                    <span className="chip">{info.weight}</span>
+                  </p>
+                  {r.note ? <p className="recipe-note">{r.note}</p> : null}
+                  <div className="recipe-actions">
+                    <button
+                      type="button"
+                      className="button button-primary"
+                      onClick={() => (hasContent(current) ? setConfirmOpen(r) : open(r))}
+                    >
+                      Открыть
+                    </button>
+                    <a
+                      className="button"
+                      href={recipeEditHash(r.id)}
+                      aria-label={`Изменить рецепт «${r.name}»`}
+                    >
+                      Изменить
+                    </a>
+                    <ActionMenu
+                      label={`Ещё действия с рецептом «${r.name}»`}
+                      items={[
+                        { label: 'Копировать', onSelect: () => void copy(r) },
+                        {
+                          label: 'Удалить',
+                          ariaLabel: `Удалить рецепт «${r.name}»`,
+                          danger: true,
+                          onSelect: () => void remove(r),
+                        },
+                      ]}
+                    />
+                  </div>
+                </li>
+              );
+            })}
         </ul>
       )}
       {confirmOpen ? (

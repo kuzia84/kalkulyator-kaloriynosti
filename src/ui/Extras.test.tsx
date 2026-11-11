@@ -39,8 +39,10 @@ describe('порция, диаграмма, рецепты', () => {
 
   it('диаграмма показывает доли БЖУ в процентах', async () => {
     await dishWithSugar();
-    expect(screen.getByText('Углеводы: 100 %')).toBeInTheDocument();
-    expect(screen.getByText('Белки: 0 %')).toBeInTheDocument();
+    // Плашка под кольцом: название, граммы на 100 г и доля в калорийности.
+    const macro = screen.getByRole('heading', { name: 'На 100 г блюда' }).closest('section')!;
+    expect(within(macro).getByText('Углеводы').closest('li')).toHaveTextContent('100 %');
+    expect(within(macro).getByText('Белки').closest('li')).toHaveTextContent('0 %');
   });
 
   it('сохранить в рецепты, открыть из списка', async () => {

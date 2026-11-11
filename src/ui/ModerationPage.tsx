@@ -20,6 +20,8 @@ import {
 import { db } from '../storage/db';
 import { SOURCE_LABELS, type Product, type ProductSource } from '../storage/schema';
 import { AddProductDialog } from './AddProductDialog';
+import { HeaderActions } from './HeaderActions';
+import { PlusIcon, SearchIcon } from './icons';
 import { Modal } from './Modal';
 import { ProductForm } from './ProductForm';
 import type { UndoEntry } from './UndoToast';
@@ -248,113 +250,108 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
 
   return (
     <section aria-labelledby="mod-title" className="catalog">
+      <HeaderActions>
+        <button
+          type="button"
+          className="button button-primary"
+          onClick={openAdd}
+          aria-label="Добавить продукт"
+        >
+          <PlusIcon />
+          Продукт
+        </button>
+      </HeaderActions>
       <div className="page-header">
         <h1 className="page-title" tabIndex={-1} id="mod-title">
-          Справочник продуктов
+          Справочник
         </h1>
-        <div className="page-actions">
-          <button type="button" className="button button-primary" onClick={openAdd}>
-            Добавить продукт
-          </button>
-        </div>
+        <p className="page-subtitle">
+          Значения — на 100 г сырого продукта. Правки не меняют сохранённые блюда: блюдо хранит свою
+          копию значений.
+        </p>
       </div>
-      <p className="hint">
-        Значения — на 100 г сырого продукта. Правки не меняют сохранённые блюда: блюдо хранит свою
-        копию значений.
-      </p>
 
-      <div className="filters card">
-        <label className="field filters-query">
-          <span>Поиск</span>
+      <div className="filters">
+        <label className="search-field">
+          <SearchIcon />
           <input
-            className="input"
+            className="search-input"
             type="search"
+            aria-label="Поиск"
             placeholder="Название или штрихкод"
             value={filter.query}
             onChange={(e) => setFilterField('query', e.target.value)}
           />
         </label>
-        <label className="field">
-          <span>Источник</span>
-          <select
-            className="input"
-            value={filter.source}
-            onChange={(e) => setFilterField('source', e.target.value as ProductSource | 'all')}
-          >
-            <option value="all">Все</option>
-            {(Object.keys(SOURCE_LABELS) as ProductSource[]).map((s) => (
-              <option key={s} value={s}>
-                {SOURCE_LABELS[s]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Проверено</span>
-          <select
-            className="input"
-            value={filter.verified}
-            onChange={(e) =>
-              setFilterField('verified', e.target.value as ProductFilter['verified'])
+        <div className="chips chips-scroll" role="group" aria-label="Фильтры">
+          <button
+            type="button"
+            className="chip chip-toggle"
+            aria-pressed={
+              filter.source === 'all' && filter.verified === 'all' && !filter.suspiciousOnly
             }
+            onClick={() => setFilter((f) => ({ ...EMPTY_FILTER, query: f.query }))}
           >
-            <option value="all">Все</option>
-            <option value="yes">Проверено</option>
-            <option value="no">Не проверено</option>
-          </select>
-        </label>
-        <label className="field filters-sort">
-          <span>Сортировка</span>
-          <select
-            className="input"
-            value={sortValue}
-            onChange={(e) => {
-              const [key, dir] = e.target.value.split(':') as [SortKey, SortDir];
-              setSort({ key, dir });
-            }}
+            Все
+          </button>
+          <button
+            type="button"
+            className="chip chip-toggle"
+            aria-pressed={filter.verified === 'no'}
+            onClick={() => setFilterField('verified', filter.verified === 'no' ? 'all' : 'no')}
           >
-            {SORT_OPTIONS.map((o) => (
-              <option key={`${o.key}:${o.dir}`} value={`${o.key}:${o.dir}`}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="filters-suspicious">
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={filter.suspiciousOnly}
-              onChange={(e) => setFilterField('suspiciousOnly', e.target.checked)}
-            />
-            <span>
-              Калорийность не сходится с БЖУ
-              <span className="hint">Показать только записи, где стоит проверить цифры.</span>
-            </span>
-          </label>
-          <details className="explainer">
-            <summary>Как это проверяется?</summary>
-            <p>
-              Калорийность можно посчитать по БЖУ: 1 г белков — 4 ккал, 1 г жиров — 9 ккал, 1 г
-              углеводов — 4 ккал. Например, 10 г белков, 5 г жиров и 20 г углеводов дают 40 + 45 +
-              80 = 165 ккал.
-            </p>
-            <p>
-              Запись получает отметку, если указанная калорийность отличается от расчётной больше
-              чем на {THRESHOLD_PERCENT} % и не меньше чем на {SUSPICIOUS_MIN_KCAL_DIFF} ккал.
-              Второе условие нужно для малокалорийных продуктов: у чая или зелени даже 2 ккал
-              разницы дают большой процент.
-            </p>
-            <p>
-              Частые причины: опечатка, значения не на 100 г, перепутаны белки и жиры. У продуктов с
-              алкоголем, клетчаткой или сахарозаменителями формула тоже даёт неточный результат.
-            </p>
-            <p>
-              Отметка — повод сверить цифры с упаковкой, а не ошибка. Если значения верные, отметьте
-              запись как проверенную.
-            </p>
-          </details>
+            Не проверено
+          </button>
+          <button
+            type="button"
+            className="chip chip-toggle"
+            aria-pressed={filter.verified === 'yes'}
+            onClick={() => setFilterField('verified', filter.verified === 'yes' ? 'all' : 'yes')}
+          >
+            Проверено
+          </button>
+          <button
+            type="button"
+            className="chip chip-toggle"
+            aria-pressed={filter.suspiciousOnly}
+            onClick={() => setFilterField('suspiciousOnly', !filter.suspiciousOnly)}
+          >
+            Не сходится с БЖУ
+          </button>
+          {(Object.keys(SOURCE_LABELS) as ProductSource[]).map((src) => (
+            <button
+              key={src}
+              type="button"
+              className="chip chip-toggle"
+              aria-pressed={filter.source === src}
+              onClick={() => setFilterField('source', filter.source === src ? 'all' : src)}
+            >
+              {SOURCE_LABELS[src]}
+            </button>
+          ))}
         </div>
+        <details className="explainer">
+          <summary>Как это проверяется?</summary>
+          <p>
+            Калорийность можно посчитать по БЖУ: 1 г белков — 4 ккал, 1 г жиров — 9 ккал, 1 г
+            углеводов — 4 ккал. Например, 10 г белков, 5 г жиров и 20 г углеводов дают 40 + 45 + 80
+            = 165 ккал.
+          </p>
+          <p>
+            Запись получает отметку, если указанная калорийность отличается от расчётной больше чем
+            на {THRESHOLD_PERCENT} % и не меньше чем на {SUSPICIOUS_MIN_KCAL_DIFF} ккал. Второе
+            условие нужно для малокалорийных продуктов: у чая или зелени даже 2 ккал разницы дают
+            большой процент.
+          </p>
+          <p>
+            Частые причины: опечатка, значения не на 100 г, перепутаны белки и жиры. У продуктов с
+            алкоголем, клетчаткой или сахарозаменителями формула тоже даёт неточный результат.
+          </p>
+          <p>
+            Отметка — повод сверить цифры с упаковкой, а не ошибка. Если значения верные, отметьте
+            запись как проверенную.
+          </p>
+        </details>
       </div>
 
       {notice ? (
@@ -375,9 +372,28 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
         </p>
       ) : (
         <>
-          <p className="hint" role="status">
-            Найдено: {visible.length} из {products.length}.
-          </p>
+          <div className="list-toolbar">
+            <p className="count" role="status">
+              Найдено: {visible.length} из {products.length}.
+            </p>
+            <label className="sort-field">
+              <span>Сортировка</span>
+              <select
+                className="input"
+                value={sortValue}
+                onChange={(e) => {
+                  const [key, dir] = e.target.value.split(':') as [SortKey, SortDir];
+                  setSort({ key, dir });
+                }}
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <option key={`${o.key}:${o.dir}`} value={`${o.key}:${o.dir}`}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           {visible.length === 0 && onlyQueryFilter && filter.query.trim() !== '' ? (
             <div className="empty-state">
               <p>Такого продукта в справочнике нет.</p>
@@ -454,7 +470,9 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
                         </td>
                       ))}
                       <td className="cell-verified">
-                        <label className="checkbox checkbox-compact">
+                        <label
+                          className={`checkbox checkbox-compact verified-toggle${p.verified ? ' is-verified' : ''}`}
+                        >
                           <input
                             type="checkbox"
                             checked={p.verified}
@@ -466,7 +484,7 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
                       <td className="cell-actions">
                         <button
                           type="button"
-                          className="button button-small"
+                          className="button button-small button-link"
                           onClick={() => setDialog({ kind: 'edit', product: p })}
                           aria-label={`Изменить «${p.name}»`}
                         >
