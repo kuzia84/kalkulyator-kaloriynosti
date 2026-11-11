@@ -69,11 +69,14 @@ export function SettingsPage() {
     }
   }
 
-  function stepLimit(delta: number) {
-    const next = Math.min(
-      SUGGESTIONS_MAX,
-      Math.max(SUGGESTIONS_MIN, settings.suggestionsLimit + delta),
-    );
+  /** Шаг ведёт к ближайшему кратному 5: старое значение 12 становится 15 или 10. */
+  function stepLimit(direction: 1 | -1) {
+    const v = settings.suggestionsLimit;
+    const snapped =
+      direction > 0
+        ? Math.floor(v / LIMIT_STEP) * LIMIT_STEP + LIMIT_STEP
+        : Math.ceil(v / LIMIT_STEP) * LIMIT_STEP - LIMIT_STEP;
+    const next = Math.min(SUGGESTIONS_MAX, Math.max(SUGGESTIONS_MIN, snapped));
     if (next !== settings.suggestionsLimit) update({ suggestionsLimit: next });
   }
 
@@ -169,7 +172,7 @@ export function SettingsPage() {
                 className="stepper-button"
                 aria-label="Меньше подсказок"
                 disabled={settings.suggestionsLimit <= SUGGESTIONS_MIN}
-                onClick={() => stepLimit(-LIMIT_STEP)}
+                onClick={() => stepLimit(-1)}
               >
                 −
               </button>
@@ -181,7 +184,7 @@ export function SettingsPage() {
                 className="stepper-button"
                 aria-label="Больше подсказок"
                 disabled={settings.suggestionsLimit >= SUGGESTIONS_MAX}
-                onClick={() => stepLimit(LIMIT_STEP)}
+                onClick={() => stepLimit(1)}
               >
                 +
               </button>

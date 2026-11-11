@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { MoreIcon } from './icons';
 
 export interface ActionMenuItem {
   /** Текст пункта на экране. */
@@ -13,16 +14,6 @@ export interface ActionMenuProps {
   /** Имя кнопки «⋯» для программ чтения: «Действия, строка 2». */
   label: string;
   items: ActionMenuItem[];
-}
-
-function MoreIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
-      <circle cx="6" cy="12" r="1.8" fill="currentColor" />
-      <circle cx="12" cy="12" r="1.8" fill="currentColor" />
-      <circle cx="18" cy="12" r="1.8" fill="currentColor" />
-    </svg>
-  );
 }
 
 /**
@@ -77,7 +68,9 @@ export function ActionMenu({ label, items }: ActionMenuProps) {
         close(true);
         break;
       case 'Tab':
-        setOpen(false);
+        // Фокус сначала на кнопку: иначе он пропадёт вместе с пунктом меню,
+        // и Tab продолжится с начала страницы.
+        close(true);
         break;
     }
   }

@@ -2,11 +2,12 @@ import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { ROUTES, useRoute, type Route } from '../app/router';
 import { SettingsProvider, useSettings } from '../app/settingsContext';
 import { UpdateProvider, useAppUpdate } from '../app/updateContext';
-import { applySkin, applyTheme } from '../app/theme';
+import { applyTheme } from '../app/theme';
 import { useOnline } from '../app/useOnline';
 import { useDish } from '../dish/useDish';
 import { CalculatorPage } from './CalculatorPage';
 import { HeaderActionsContext } from './HeaderActions';
+import { Icon } from './icons';
 import { ModerationPage } from './ModerationPage';
 import { RecipesPage } from './RecipesPage';
 import { SettingsPage } from './SettingsPage';
@@ -27,17 +28,7 @@ const SHORT_NAV_LABELS: Record<Route, string> = {
 /** Иконки разделов: на телефоне навигация — панель вкладок внизу экрана. */
 function NavIcon({ route }: { route: Route }) {
   return (
-    <svg
-      className="app-nav-icon"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      focusable="false"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <Icon className="app-nav-icon icon" size={24}>
       {route === 'calculator' ? (
         <>
           <rect x="5" y="3" width="14" height="18" rx="3" />
@@ -56,7 +47,7 @@ function NavIcon({ route }: { route: Route }) {
           <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" />
         </>
       )}
-    </svg>
+    </Icon>
   );
 }
 
@@ -71,7 +62,6 @@ function Shell() {
   const [actionsSlot, setActionsSlot] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => applyTheme(settings.theme), [settings.theme]);
-  useEffect(() => applySkin(settings.skin), [settings.skin]);
 
   const ready = dish.ready && settingsReady;
   const mainRef = useRef<HTMLElement>(null);

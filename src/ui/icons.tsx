@@ -1,10 +1,18 @@
 import type { ReactNode } from 'react';
 
 /** Контурные иконки 24×24. Всегда декоративные: имя действия задаёт кнопка. */
-function Icon({ children, size = 22 }: { children: ReactNode; size?: number }) {
+export function Icon({
+  children,
+  size = 22,
+  className = 'icon',
+}: {
+  children: ReactNode;
+  size?: number;
+  className?: string;
+}) {
   return (
     <svg
-      className="icon"
+      className={className}
       viewBox="0 0 24 24"
       width={size}
       height={size}
@@ -58,6 +66,16 @@ export function ChevronIcon() {
   return (
     <Icon size={20}>
       <path d="m9 6 6 6-6 6" />
+    </Icon>
+  );
+}
+
+export function MoreIcon() {
+  return (
+    <Icon>
+      <circle cx="6" cy="12" r="1.8" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none" />
+      <circle cx="18" cy="12" r="1.8" fill="currentColor" stroke="none" />
     </Icon>
   );
 }

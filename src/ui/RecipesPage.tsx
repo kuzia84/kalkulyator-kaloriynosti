@@ -26,6 +26,8 @@ export interface RecipesPageProps {
   onOpened: () => void;
 }
 
+const dateFormatter = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium' });
+
 /** Плашки под названием рецепта: калорийность на 100 г, число ингредиентов, вес. */
 function summary(recipe: Dish): { kcal: string | null; count: string; weight: string } {
   const t = totals(recipe.rows);
@@ -104,6 +106,8 @@ function RecipeList({
   const [error, setError] = useState('');
   const [confirmOpen, setConfirmOpen] = useState<Dish | null>(null);
   const [query, setQuery] = useState('');
+  const needle = query.trim().toLowerCase();
+  const found = (recipes ?? []).filter((r) => r.name.toLowerCase().includes(needle));
 
   const reload = useCallback(async () => {
     try {
@@ -200,6 +204,11 @@ function RecipeList({
           />
         </label>
       ) : null}
+      {recipes != null && recipes.length > 0 && found.length === 0 ? (
+        <p className="note" role="status">
+          Рецептов с «{query.trim()}» в названии нет.
+        </p>
+      ) : null}
       {recipes == null ? (
         <p className="hint" role="status">
           Загружаем рецепты…
@@ -208,52 +217,53 @@ function RecipeList({
         <p className="note">
           Рецептов пока нет. Посчитайте блюдо в калькуляторе и нажмите «Сохранить в рецепты».
         </p>
-      ) : (
+      ) : found.length === 0 ? null : (
         <ul className="recipe-list">
-          {recipes
-            .filter((r) => r.name.toLowerCase().includes(query.trim().toLowerCase()))
-            .map((r) => {
-              const info = summary(r);
-              return (
-                <li key={r.id} className="card recipe-item">
-                  <h2>{r.name}</h2>
-                  <p className="chips">
-                    {info.kcal ? <span className="chip chip-accent">{info.kcal}</span> : null}
-                    <span className="chip">{info.count}</span>
-                    <span className="chip">{info.weight}</span>
-                  </p>
-                  {r.note ? <p className="recipe-note">{r.note}</p> : null}
-                  <div className="recipe-actions">
-                    <button
-                      type="button"
-                      className="button button-primary"
-                      onClick={() => (hasContent(current) ? setConfirmOpen(r) : open(r))}
-                    >
-                      Открыть
-                    </button>
-                    <a
-                      className="button"
-                      href={recipeEditHash(r.id)}
-                      aria-label={`Изменить рецепт «${r.name}»`}
-                    >
-                      Изменить
-                    </a>
-                    <ActionMenu
-                      label={`Ещё действия с рецептом «${r.name}»`}
-                      items={[
-                        { label: 'Копировать', onSelect: () => void copy(r) },
-                        {
-                          label: 'Удалить',
-                          ariaLabel: `Удалить рецепт «${r.name}»`,
-                          danger: true,
-                          onSelect: () => void remove(r),
-                        },
-                      ]}
-                    />
-                  </div>
-                </li>
-              );
-            })}
+          {found.map((r) => {
+            const info = summary(r);
+            return (
+              <li key={r.id} className="card recipe-item">
+                <h2>{r.name}</h2>
+                <p className="chips">
+                  {info.kcal ? <span className="chip chip-accent">{info.kcal}</span> : null}
+                  <span className="chip">{info.count}</span>
+                  <span className="chip">{info.weight}</span>
+                  <span className="chip chip-quiet">
+                    Изменён {dateFormatter.format(r.updatedAt)}
+                  </span>
+                </p>
+                {r.note ? <p className="recipe-note">{r.note}</p> : null}
+                <div className="recipe-actions">
+                  <button
+                    type="button"
+                    className="button button-primary"
+                    onClick={() => (hasContent(current) ? setConfirmOpen(r) : open(r))}
+                  >
+                    Открыть
+                  </button>
+                  <a
+                    className="button"
+                    href={recipeEditHash(r.id)}
+                    aria-label={`Изменить рецепт «${r.name}»`}
+                  >
+                    Изменить
+                  </a>
+                  <ActionMenu
+                    label={`Ещё действия с рецептом «${r.name}»`}
+                    items={[
+                      { label: 'Копировать', onSelect: () => void copy(r) },
+                      {
+                        label: 'Удалить',
+                        ariaLabel: `Удалить рецепт «${r.name}»`,
+                        danger: true,
+                        onSelect: () => void remove(r),
+                      },
+                    ]}
+                  />
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
       {confirmOpen ? (

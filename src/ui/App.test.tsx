@@ -1,7 +1,10 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { initialDishState } from '../dish/state';
 import { db } from '../storage/db';
+import { saveRecipe } from '../storage/recipes';
+import { DEFAULT_SETTINGS } from '../storage/schema';
 import { resetDb } from '../test/db';
 import { App } from './App';
 
@@ -267,5 +270,39 @@ describe('доступность навигации', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Добавить в таблицу' }));
     // Подпись поля теперь содержит и текст ошибки.
     expect(within(dialog).getByLabelText(/^Калорийность, ккал/)).toHaveFocus();
+  });
+});
+
+describe('правки после ревью', () => {
+  it('кнопка штрихкода под таблицей открывает окно сразу в режиме «По штрихкоду»', async () => {
+    const user = await renderApp();
+    await user.click(screen.getByRole('button', { name: 'Новый продукт по штрихкоду' }));
+    const dialog = screen.getByRole('dialog', { name: 'Новый продукт' });
+    expect(within(dialog).getByRole('button', { name: 'По штрихкоду' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('счётчик подсказок ведёт к ближайшему кратному 5', async () => {
+    await db.settings.put({ id: 'app', ...DEFAULT_SETTINGS, suggestionsLimit: 12 });
+    const user = userEvent.setup();
+    window.location.hash = '#/settings';
+    render(<App />);
+    await user.click(await screen.findByRole('button', { name: 'Меньше подсказок' }));
+    await waitFor(async () => expect((await db.settings.get('app'))?.suggestionsLimit).toBe(10));
+    await user.click(screen.getByRole('button', { name: 'Больше подсказок' }));
+    await waitFor(async () => expect((await db.settings.get('app'))?.suggestionsLimit).toBe(15));
+  });
+
+  it('поиск рецептов без совпадений говорит, что ничего не найдено', async () => {
+    await saveRecipe({ ...initialDishState(), name: 'Сырники' });
+    const user = userEvent.setup();
+    window.location.hash = '#/recipes';
+    render(<App />);
+    await screen.findByRole('heading', { name: 'Сырники' });
+    await user.type(screen.getByRole('searchbox', { name: 'Найти рецепт' }), 'борщ');
+    expect(screen.getByText('Рецептов с «борщ» в названии нет.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Сырники' })).not.toBeInTheDocument();
   });
 });

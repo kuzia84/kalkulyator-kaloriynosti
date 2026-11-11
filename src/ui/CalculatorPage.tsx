@@ -108,6 +108,10 @@ export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageP
             ? `${ingredientsCount(filled)} · ${formatWeight(total.weight)} г`
             : 'Калькулятор калорийности блюда'}
         </p>
+        {/* Итог сохранения — у заголовка, рядом с кнопкой «Сохранить» в шапке. */}
+        <p className="save-status" role="status">
+          {message}
+        </p>
       </div>
       {!hasContent(state) ? (
         <p className="hint">
@@ -117,7 +121,7 @@ export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageP
       ) : null}
       <div className="calc-layout">
         <IngredientsEditor state={state} dispatch={dispatch} onRemoveRow={removeRow} />
-        <DishExtras state={state} dispatch={dispatch} message={message} />
+        <DishExtras state={state} dispatch={dispatch} />
       </div>
     </section>
   );

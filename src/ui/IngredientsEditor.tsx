@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { pickAction, type DishAction, type DishState } from '../dish/state';
+import { useState } from 'react';
+import { emptyRow, pickAction, type DishAction, type DishState } from '../dish/state';
 import { suggestionFromProduct } from '../search/types';
 import type { Product } from '../storage/schema';
 import { AddProductDialog } from './AddProductDialog';
@@ -22,28 +22,36 @@ export function IngredientsEditor({ state, dispatch, onRemoveRow }: IngredientsE
   const [manual, setManual] = useState<{ rowId: string; name: string } | null>(null);
   const [searchRowId, setSearchRowId] = useState<string | null>(null);
   const searchRow = state.rows.find((r) => r.id === searchRowId);
-  // Кнопка штрихкода без свободной строки сначала добавляет строку: окно откроется для неё.
-  const [scanPending, setScanPending] = useState(false);
-
-  useEffect(() => {
-    if (!scanPending) return;
-    setScanPending(false);
-    const last = state.rows[state.rows.length - 1];
-    if (last) setSearchRowId(last.id);
-  }, [scanPending, state.rows]);
+  // Окно штрихкода открыто кнопкой под таблицей. Строку, которую добавили только для него,
+  // убираем, если продукт так и не выбрали.
+  const [scan, setScan] = useState<{ addedRowId: string | null } | null>(null);
 
   function scanNew() {
     const free = state.rows.find((r) => !r.per100 && r.name.trim() === '');
     if (free) {
+      setScan({ addedRowId: null });
       setSearchRowId(free.id);
       return;
     }
-    dispatch({ type: 'addRow' });
-    setScanPending(true);
+    const row = emptyRow();
+    dispatch({ type: 'insertRow', row, index: state.rows.length });
+    setScan({ addedRowId: row.id });
+    setSearchRowId(row.id);
   }
 
   function pickIntoRow(rowId: string, product: Product) {
     dispatch(pickAction(rowId, suggestionFromProduct(product)));
+    setScan(null);
+    setSearchRowId(null);
+  }
+
+  function closeSearch() {
+    const added = scan?.addedRowId;
+    const row = state.rows.find((r) => r.id === added);
+    if (row && !row.per100 && row.name.trim() === '' && row.weight.trim() === '') {
+      dispatch({ type: 'removeRow', rowId: row.id });
+    }
+    setScan(null);
     setSearchRowId(null);
   }
 
@@ -78,7 +86,8 @@ export function IngredientsEditor({ state, dispatch, onRemoveRow }: IngredientsE
           submitLabel="Добавить в таблицу"
           existingLabel="Добавить в таблицу"
           barcodeHint="Найдите продукт по коду. Продукт из справочника сразу встанет в строку, новый заполнит форму."
-          onClose={() => setSearchRowId(null)}
+          onClose={closeSearch}
+          initialMode={scan ? 'barcode' : 'manual'}
           onAdded={(product) => pickIntoRow(searchRow.id, product)}
           onExisting={(product) => pickIntoRow(searchRow.id, product)}
         />

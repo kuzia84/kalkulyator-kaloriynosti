@@ -608,6 +608,16 @@ a {
   margin-bottom: var(--space-4);
 }
 
+.save-status {
+  margin: var(--space-2) 0 0;
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+.save-status:empty {
+  display: none;
+}
+
 .page-subtitle {
   margin: var(--space-1) 0 0;
   color: var(--text-muted);
@@ -988,6 +998,12 @@ a {
   white-space: nowrap;
 }
 
+.chip-quiet {
+  background: transparent;
+  color: var(--text-muted);
+  padding-inline: var(--space-1);
+}
+
 .chip-accent {
   background: var(--ok-bg);
   color: var(--ok-text);
@@ -1162,6 +1178,15 @@ a {
 }
 
 /* ===== Меню «⋯» ===== */
+
+/* Стеклянная карточка — отдельный контекст наложения: открытое меню или список подсказок
+   внутри неё иначе ушли бы под соседнюю карточку. Карточку с открытым меню поднимаем. */
+:is(.card, .table-wrap, .dish-table tr, .catalog-table tr):has(
+  .action-menu-list,
+  .combobox-popup:not([hidden])
+) {
+  z-index: 10;
+}
 
 .action-menu {
   position: relative;
