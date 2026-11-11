@@ -213,3 +213,29 @@ describe('настройки', () => {
     await waitFor(async () => expect((await db.settings.get('app'))?.usdaApiKey).toBe('my-key'));
   });
 });
+
+describe('доступность навигации', () => {
+  it('смена раздела переводит фокус на заголовок страницы', async () => {
+    const user = await renderApp();
+    await user.click(screen.getByRole('link', { name: 'Настройки' }));
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Настройки' });
+    await waitFor(() => expect(heading).toHaveFocus());
+  });
+
+  it('ссылка «Перейти к содержимому» ставит фокус на основную область и не меняет раздел', async () => {
+    const user = await renderApp();
+    await user.click(screen.getByRole('link', { name: 'Перейти к содержимому' }));
+    expect(screen.getByRole('heading', { level: 1 })).toHaveFocus();
+    expect(screen.getByRole('table')).toBeInTheDocument();
+  });
+
+  it('форма продукта с ошибками ставит фокус на первое неверное поле', async () => {
+    const user = await renderApp();
+    await user.type(screen.getByRole('combobox', { name: 'Ингредиент 1' }), 'Новый');
+    await user.click(await screen.findByRole('option', { name: /Ввести «Новый» вручную/ }));
+    const dialog = screen.getByRole('dialog', { name: 'Новый продукт' });
+    await user.click(within(dialog).getByRole('button', { name: 'Добавить в таблицу' }));
+    // Подпись поля теперь содержит и текст ошибки.
+    expect(within(dialog).getByLabelText(/^Калорийность, ккал/)).toHaveFocus();
+  });
+});

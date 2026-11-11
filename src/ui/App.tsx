@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, type MouseEvent } from 'react';
 import { ROUTES, useRoute, type Route } from '../app/router';
 import { SettingsProvider, useSettings } from '../app/settingsContext';
 import { applyTheme } from '../app/theme';
@@ -25,9 +25,38 @@ function Shell() {
   useEffect(() => applyTheme(settings.theme), [settings.theme]);
 
   const ready = dish.ready && settingsReady;
+  const mainRef = useRef<HTMLElement>(null);
+  const previousPage = useRef(page);
+  const readyRef = useRef(ready);
+  readyRef.current = ready;
+
+  function focusPageTitle() {
+    // У каждой страницы заголовок .page-title с tabIndex={-1}. Нет заголовка — фокус на <main>.
+    const target =
+      mainRef.current?.querySelector<HTMLElement>('.page-title') ?? mainRef.current ?? null;
+    target?.focus();
+  }
+
+  // Смена раздела переводит фокус на заголовок страницы: программа чтения с экрана
+  // объявляет новый раздел, а Tab продолжает с начала его содержимого.
+  // Смена раздела во время загрузки фокус не трогает: пользователь мог уже уйти Tab дальше.
+  useEffect(() => {
+    const changed = previousPage.current !== page;
+    previousPage.current = page;
+    if (changed && readyRef.current) focusPageTitle();
+  }, [page]);
+
+  function skipToContent(e: MouseEvent<HTMLAnchorElement>) {
+    // Обычный переход по #id сменил бы маршрут: адреса разделов тоже лежат в hash.
+    e.preventDefault();
+    focusPageTitle();
+  }
 
   return (
     <div className="app">
+      <a className="skip-link" href="#main-content" onClick={skipToContent}>
+        Перейти к содержимому
+      </a>
       <header className="app-header">
         <a className="app-brand" href="#/">
           <span className="app-logo" aria-hidden="true">
@@ -48,7 +77,7 @@ function Shell() {
           Нет интернета. Поиск идёт только по справочнику на устройстве, расчёт работает как обычно.
         </p>
       ) : null}
-      <main className="app-main">
+      <main id="main-content" ref={mainRef} className="app-main" tabIndex={-1}>
         {!ready ? (
           <p className="hint" role="status">
             Загружаем данные…

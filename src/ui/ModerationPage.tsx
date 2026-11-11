@@ -155,7 +155,9 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
   return (
     <section aria-labelledby="mod-title">
       <div className="page-header">
-        <h1 id="mod-title">Справочник продуктов</h1>
+        <h1 className="page-title" tabIndex={-1} id="mod-title">
+          Справочник продуктов
+        </h1>
         <div className="page-actions">
           <button
             type="button"
