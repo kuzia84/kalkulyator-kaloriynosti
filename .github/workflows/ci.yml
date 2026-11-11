@@ -23,6 +23,10 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    # Образ Playwright уже содержит браузеры и системные библиотеки: установка через apt
+    # на раннере падает при сбоях зеркал. Версия образа совпадает с @playwright/test.
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,7 +34,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: npx playwright install --with-deps chromium
       - run: npm run e2e
       - uses: actions/upload-artifact@v4
         if: failure()
