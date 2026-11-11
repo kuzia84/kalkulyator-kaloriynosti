@@ -1,9 +1,8 @@
 import { useDish } from '../dish/useDish';
+import { DEFAULT_SETTINGS } from '../storage/schema';
 import { CalculatorPage } from './CalculatorPage';
 import { UndoToast, useUndo } from './UndoToast';
 import './styles.css';
-
-const SUGGESTIONS_LIMIT = 20;
 
 export function App() {
   const dish = useDish();
@@ -19,7 +18,12 @@ export function App() {
       </header>
       <main className="app-main">
         {dish.ready ? (
-          <CalculatorPage dish={dish} suggestionsLimit={SUGGESTIONS_LIMIT} offerUndo={undo.offer} />
+          <CalculatorPage
+            dish={dish}
+            suggestionsLimit={DEFAULT_SETTINGS.suggestionsLimit}
+            offerUndo={undo.offer}
+            dismissUndo={undo.dismiss}
+          />
         ) : (
           <p className="hint" role="status">
             Загружаем данные…

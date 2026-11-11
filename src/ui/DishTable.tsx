@@ -11,7 +11,7 @@ import {
   totals,
   type Nutrients,
 } from '../calc';
-import type { DishAction, DishState, PickedProduct } from '../dish/state';
+import { pickAction, type DishAction, type DishState, type PickedProduct } from '../dish/state';
 import { COLUMN_LABELS, SHORT_LABELS } from './columns';
 import { IngredientRow } from './IngredientRow';
 
@@ -54,8 +54,7 @@ export function DishTable({
   const loss = cooked != null && cooked > 0 && hasWeight ? (1 - cooked / total.weight) * 100 : null;
 
   const onNameChange = (rowId: string, name: string) => dispatch({ type: 'setName', rowId, name });
-  const onPick = (rowId: string, product: PickedProduct) =>
-    dispatch({ type: 'pick', rowId, product });
+  const onPick = (rowId: string, product: PickedProduct) => dispatch(pickAction(rowId, product));
   const onWeightChange = (rowId: string, weight: string) =>
     dispatch({ type: 'setWeight', rowId, weight });
 

@@ -26,17 +26,35 @@ export interface PickedProduct extends Nutrients {
 
 export type DishAction =
   | { type: 'setName'; rowId: string; name: string }
-  | { type: 'pick'; rowId: string; product: PickedProduct }
+  | { type: 'pick'; rowId: string; product: PickedProduct; pickId: string }
   | { type: 'setWeight'; rowId: string; weight: string }
-  | { type: 'committed'; rowId: string; productId: string; expectedName: string }
+  | { type: 'committed'; rowId: string; productId: string; pickId: string }
   | { type: 'addRow' }
   | { type: 'removeRow'; rowId: string }
+  | { type: 'insertRow'; row: DishRow; index: number }
   | { type: 'clear' }
   | { type: 'setCookedWeight'; value: string }
   | { type: 'setPortionWeight'; value: string }
   | { type: 'setDishName'; value: string }
   | { type: 'setNote'; value: string }
   | { type: 'replace'; state: DishState };
+
+/** Действие выбора продукта. `pickId` отличает этот выбор от следующих в той же строке. */
+export function pickAction(rowId: string, product: PickedProduct): DishAction {
+  return { type: 'pick', rowId, product, pickId: newId() };
+}
+
+/** Поля продукта, которые строка копирует себе. Одно место для всех вызовов. */
+export function productFields(p: PickedProduct): Omit<DishRow, 'id' | 'weight' | 'pickId'> {
+  return {
+    name: p.name,
+    per100: { kcal: p.kcal, protein: p.protein, fat: p.fat, carbs: p.carbs },
+    source: p.source,
+    ...(p.productId ? { productId: p.productId } : {}),
+    ...(p.barcode ? { barcode: p.barcode } : {}),
+    ...(p.externalId ? { externalId: p.externalId } : {}),
+  };
+}
 
 export function emptyRow(): DishRow {
   return { id: newId(), name: '', weight: '' };
@@ -65,25 +83,19 @@ export function dishReducer(state: DishState, action: DishAction): DishState {
         name: action.name,
         weight: r.weight,
       }));
-    case 'pick': {
-      const p = action.product;
+    case 'pick':
       return updateRow(state, action.rowId, (r) => ({
         id: r.id,
-        name: p.name,
         weight: r.weight,
-        per100: { kcal: p.kcal, protein: p.protein, fat: p.fat, carbs: p.carbs },
-        source: p.source,
-        ...(p.productId ? { productId: p.productId } : {}),
-        ...(p.barcode ? { barcode: p.barcode } : {}),
-        ...(p.externalId ? { externalId: p.externalId } : {}),
+        pickId: action.pickId,
+        ...productFields(action.product),
       }));
-    }
     case 'setWeight':
       return updateRow(state, action.rowId, (r) => ({ ...r, weight: action.weight }));
     case 'committed':
       // Пока шла запись в справочник, пользователь мог выбрать другой продукт.
       return updateRow(state, action.rowId, (r) =>
-        r.per100 && r.name === action.expectedName
+        r.per100 && r.pickId === action.pickId
           ? { ...r, productId: action.productId, committed: true }
           : r,
       );
@@ -93,6 +105,12 @@ export function dishReducer(state: DishState, action: DishAction): DishState {
       const rows = state.rows.filter((r) => r.id !== action.rowId);
       // Таблица не остаётся пустой: в ней всегда есть хотя бы одна строка для ввода.
       return { ...state, rows: rows.length > 0 ? rows : [emptyRow()] };
+    }
+    case 'insertRow': {
+      if (state.rows.some((r) => r.id === action.row.id)) return state;
+      const rows = [...state.rows];
+      rows.splice(Math.min(action.index, rows.length), 0, action.row);
+      return { ...state, rows };
     }
     case 'clear':
       return initialDishState();
@@ -115,9 +133,12 @@ export function needsCommit(row: DishRow): boolean {
   return !!row.per100 && !row.committed && weight != null && weight > 0;
 }
 
-/** В таблице есть что терять: хотя бы одно заполненное поле. */
+/** В блюде есть что терять: хотя бы одно заполненное поле или связь с рецептом. */
 export function hasContent(state: DishState): boolean {
   return (
+    !!state.recipeId ||
+    state.name.trim() !== '' ||
+    state.note.trim() !== '' ||
     state.rows.some((r) => r.name.trim() !== '' || r.weight.trim() !== '') ||
     state.cookedWeight.trim() !== '' ||
     state.portionWeight.trim() !== ''

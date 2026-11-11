@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { hasContent } from '../dish/state';
+import { useEffect, useRef, useState } from 'react';
+import { hasContent, initialDishState, pickAction, type DishState } from '../dish/state';
 import type { UseDish } from '../dish/useDish';
 import { DishTable } from './DishTable';
 import { Modal } from './Modal';
@@ -10,28 +10,52 @@ export interface CalculatorPageProps {
   dish: UseDish;
   suggestionsLimit: number;
   offerUndo: (entry: UndoEntry) => void;
+  dismissUndo: () => void;
 }
 
-export function CalculatorPage({ dish, suggestionsLimit, offerUndo }: CalculatorPageProps) {
+export function CalculatorPage({
+  dish,
+  suggestionsLimit,
+  offerUndo,
+  dismissUndo,
+}: CalculatorPageProps) {
   const { state, dispatch } = dish;
   const [manual, setManual] = useState<{ rowId: string; name: string } | null>(null);
+  // Состояние сразу после очистки. Любая следующая правка убирает возможность вернуть таблицу:
+  // иначе отмена стёрла бы то, что пользователь ввёл после очистки.
+  const clearedState = useRef<DishState | null>(null);
+
+  useEffect(() => {
+    if (clearedState.current && clearedState.current !== state) {
+      clearedState.current = null;
+      dismissUndo();
+    }
+  }, [state, dismissUndo]);
 
   function removeRow(rowId: string) {
-    const snapshot = state;
-    const row = state.rows.find((r) => r.id === rowId);
+    const index = state.rows.findIndex((r) => r.id === rowId);
+    const row = state.rows[index];
+    if (!row) return;
+    clearedState.current = null;
     dispatch({ type: 'removeRow', rowId });
+    // Отмена возвращает только эту строку на её место, остальные правки сохраняются.
     offerUndo({
-      message: row?.name ? `Строка «${row.name}» удалена.` : 'Строка удалена.',
-      undo: () => dispatch({ type: 'replace', state: snapshot }),
+      message: row.name ? `Строка «${row.name}» удалена.` : 'Строка удалена.',
+      undo: () => dispatch({ type: 'insertRow', row, index }),
     });
   }
 
   function clearTable() {
     const snapshot = state;
-    dispatch({ type: 'clear' });
+    const cleared = initialDishState();
+    clearedState.current = cleared;
+    dispatch({ type: 'replace', state: cleared });
     offerUndo({
       message: 'Таблица очищена.',
-      undo: () => dispatch({ type: 'replace', state: snapshot }),
+      undo: () => {
+        clearedState.current = null;
+        dispatch({ type: 'replace', state: snapshot });
+      },
     });
   }
 
@@ -70,11 +94,7 @@ export function CalculatorPage({ dish, suggestionsLimit, offerUndo }: Calculator
             submitLabel="Добавить в таблицу"
             onCancel={() => setManual(null)}
             onSubmit={(value) => {
-              dispatch({
-                type: 'pick',
-                rowId: manual.rowId,
-                product: { ...value, source: 'user' },
-              });
+              dispatch(pickAction(manual.rowId, { ...value, source: 'user' }));
               setManual(null);
             }}
           />

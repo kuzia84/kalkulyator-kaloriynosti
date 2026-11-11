@@ -20,20 +20,6 @@ export interface IngredientRowProps {
 
 const NO_ITEMS: Suggestion[] = [];
 
-function pickedFromSuggestion(s: Suggestion): PickedProduct {
-  return {
-    name: s.name,
-    kcal: s.kcal,
-    protein: s.protein,
-    fat: s.fat,
-    carbs: s.carbs,
-    source: s.source,
-    ...(s.productId ? { productId: s.productId } : {}),
-    ...(s.barcode ? { barcode: s.barcode } : {}),
-    ...(s.externalId ? { externalId: s.externalId } : {}),
-  };
-}
-
 export function IngredientRow(props: IngredientRowProps) {
   const { row, index, suggestionsLimit, onNameChange, onPick, onWeightChange, onRemove, onManual } =
     props;
@@ -56,7 +42,7 @@ export function IngredientRow(props: IngredientRowProps) {
             loading={!row.per100 && loading}
             selected={!!row.per100}
             onChange={(text) => onNameChange(row.id, text)}
-            onPick={(s) => onPick(row.id, pickedFromSuggestion(s))}
+            onPick={(s) => onPick(row.id, s)}
             onManual={(text) => onManual(row.id, text)}
             onOpenChange={onOpenChange}
           />

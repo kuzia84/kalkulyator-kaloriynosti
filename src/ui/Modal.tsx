@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 
 export interface ModalProps {
   title: string;
@@ -12,12 +12,15 @@ export interface ModalProps {
  */
 export function Modal({ title, onClose, children }: ModalProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
-    const first = ref.current?.querySelector<HTMLElement>(
+    // Фокус — на первое поле содержимого, а не на кнопку «Закрыть» в заголовке.
+    const first = bodyRef.current?.querySelector<HTMLElement>(
       'input, select, textarea, button, [tabindex]:not([tabindex="-1"])',
     );
     first?.focus();
@@ -54,20 +57,14 @@ export function Modal({ title, onClose, children }: ModalProps) {
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div
-        ref={ref}
-        className="modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-      >
+      <div ref={ref} className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <div className="modal-header">
-          <h2 id="modal-title">{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <button type="button" className="button-icon" aria-label="Закрыть" onClick={onClose}>
             ×
           </button>
         </div>
-        {children}
+        <div ref={bodyRef}>{children}</div>
       </div>
     </div>
   );

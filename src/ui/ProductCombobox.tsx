@@ -78,8 +78,9 @@ export function ProductCombobox(props: ProductComboboxProps) {
         if (!hasText) return;
         e.preventDefault();
         if (!open) {
+          // Список ещё не загружен: активного пункта нет, иначе Enter выбрал бы ручной ввод.
           setOpen(true);
-          setActive(0);
+          setActive(items.length > 0 ? 0 : -1);
         } else {
           setActive((i) => (i + 1) % optionCount);
         }
@@ -89,7 +90,7 @@ export function ProductCombobox(props: ProductComboboxProps) {
         e.preventDefault();
         if (!open) {
           setOpen(true);
-          setActive(optionCount - 1);
+          setActive(items.length > 0 ? optionCount - 1 : -1);
         } else {
           setActive((i) => (i <= 0 ? optionCount - 1 : i - 1));
         }

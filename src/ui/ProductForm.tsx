@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import {
   atwaterKcal,
   formatNutrient,
@@ -46,6 +46,8 @@ export function ProductForm({ initial, submitLabel, onSubmit, onCancel }: Produc
     barcode: initial?.barcode ?? '',
   });
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
+  const uid = useId();
+  const errorId = (field: Field) => `${uid}-${field}-error`;
 
   const parsed = {
     kcal: parseDecimal(values.kcal),
@@ -99,10 +101,10 @@ export function ProductForm({ initial, submitLabel, onSubmit, onCancel }: Produc
           value={values.name}
           onChange={(e) => set('name', e.target.value)}
           aria-invalid={!!errors.name}
-          aria-describedby={errors.name ? 'pf-name-error' : undefined}
+          aria-describedby={errors.name ? errorId('name') : undefined}
         />
         {errors.name ? (
-          <span id="pf-name-error" className="field-error">
+          <span id={errorId('name')} className="field-error">
             {errors.name}
           </span>
         ) : null}
@@ -117,10 +119,10 @@ export function ProductForm({ initial, submitLabel, onSubmit, onCancel }: Produc
               value={values[key]}
               onChange={(e) => set(key, sanitizeDecimalInput(e.target.value, 2))}
               aria-invalid={!!errors[key]}
-              aria-describedby={errors[key] ? `pf-${key}-error` : undefined}
+              aria-describedby={errors[key] ? errorId(key) : undefined}
             />
             {errors[key] ? (
-              <span id={`pf-${key}-error`} className="field-error">
+              <span id={errorId(key)} className="field-error">
                 {errors[key]}
               </span>
             ) : null}
@@ -135,10 +137,10 @@ export function ProductForm({ initial, submitLabel, onSubmit, onCancel }: Produc
           value={values.barcode}
           onChange={(e) => set('barcode', e.target.value.replace(/[^\d\s]/g, ''))}
           aria-invalid={!!errors.barcode}
-          aria-describedby={errors.barcode ? 'pf-barcode-error' : undefined}
+          aria-describedby={errors.barcode ? errorId('barcode') : undefined}
         />
         {errors.barcode ? (
-          <span id="pf-barcode-error" className="field-error">
+          <span id={errorId('barcode')} className="field-error">
             {errors.barcode}
           </span>
         ) : null}

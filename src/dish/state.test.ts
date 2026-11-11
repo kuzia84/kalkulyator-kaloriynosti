@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { dishReducer, hasContent, initialDishState, INITIAL_ROWS, needsCommit } from './state';
+import {
+  dishReducer,
+  hasContent,
+  initialDishState,
+  INITIAL_ROWS,
+  needsCommit,
+  pickAction,
+  type DishState,
+} from './state';
 
 const milk = {
   name: 'Молоко',
@@ -11,6 +19,15 @@ const milk = {
   productId: 'sk-034',
 };
 
+function withMilk(weight = ''): { state: DishState; rowId: string; pickId: string } {
+  let state = initialDishState();
+  const rowId = state.rows[0]!.id;
+  const action = pickAction(rowId, milk);
+  state = dishReducer(state, action);
+  if (weight) state = dishReducer(state, { type: 'setWeight', rowId, weight });
+  return { state, rowId, pickId: state.rows[0]!.pickId! };
+}
+
 describe('dishReducer', () => {
   it('начальное состояние — 4 пустые строки', () => {
     const s = initialDishState();
@@ -19,19 +36,18 @@ describe('dishReducer', () => {
   });
 
   it('выбор продукта копирует значения на 100 г', () => {
-    const s0 = initialDishState();
-    const id = s0.rows[0]!.id;
-    const s1 = dishReducer(s0, { type: 'pick', rowId: id, product: milk });
-    expect(s1.rows[0]).toMatchObject({ name: 'Молоко', productId: 'sk-034', per100: { kcal: 52 } });
+    const { state } = withMilk();
+    expect(state.rows[0]).toMatchObject({
+      name: 'Молоко',
+      productId: 'sk-034',
+      per100: { kcal: 52 },
+    });
   });
 
   it('новый текст в поле сбрасывает продукт, вес остаётся', () => {
-    let s = initialDishState();
-    const id = s.rows[0]!.id;
-    s = dishReducer(s, { type: 'pick', rowId: id, product: milk });
-    s = dishReducer(s, { type: 'setWeight', rowId: id, weight: '200' });
-    s = dishReducer(s, { type: 'setName', rowId: id, name: 'Мол' });
-    expect(s.rows[0]).toEqual({ id, name: 'Мол', weight: '200' });
+    const { state, rowId } = withMilk('200');
+    const s = dishReducer(state, { type: 'setName', rowId, name: 'Мол' });
+    expect(s.rows[0]).toEqual({ id: rowId, name: 'Мол', weight: '200' });
   });
 
   it('добавление и удаление строк', () => {
@@ -48,34 +64,39 @@ describe('dishReducer', () => {
     expect(s.rows).toHaveLength(1);
   });
 
-  it('отметка о записи в справочник не ставится, если продукт сменился', () => {
+  it('возврат строки на место не трогает правки после удаления', () => {
     let s = initialDishState();
-    const id = s.rows[0]!.id;
-    s = dishReducer(s, { type: 'pick', rowId: id, product: milk });
-    s = dishReducer(s, { type: 'setWeight', rowId: id, weight: '100' });
-    expect(needsCommit(s.rows[0]!)).toBe(true);
-    const stale = dishReducer(s, {
-      type: 'committed',
-      rowId: id,
-      productId: 'x',
-      expectedName: 'Кефир',
-    });
+    const removed = s.rows[1]!;
+    s = dishReducer(s, { type: 'removeRow', rowId: removed.id });
+    s = dishReducer(s, { type: 'setWeight', rowId: s.rows[0]!.id, weight: '150' });
+    s = dishReducer(s, { type: 'insertRow', row: removed, index: 1 });
+    expect(s.rows[1]!.id).toBe(removed.id);
+    expect(s.rows[0]!.weight).toBe('150');
+    expect(dishReducer(s, { type: 'insertRow', row: removed, index: 1 }).rows).toHaveLength(4);
+  });
+
+  it('ответ справочника для прежнего выбора не отмечает новый выбор', () => {
+    const { state, rowId, pickId } = withMilk('100');
+    // Пользователь выбрал продукт с тем же названием ещё раз (например, вручную).
+    const repicked = dishReducer(
+      dishReducer(state, pickAction(rowId, { ...milk, source: 'user', productId: undefined })),
+      { type: 'setWeight', rowId, weight: '100' },
+    );
+    const stale = dishReducer(repicked, { type: 'committed', rowId, productId: 'sk-034', pickId });
     expect(needsCommit(stale.rows[0]!)).toBe(true);
-    const ok = dishReducer(s, {
-      type: 'committed',
-      rowId: id,
-      productId: 'sk-034',
-      expectedName: 'Молоко',
-    });
+    const ok = dishReducer(state, { type: 'committed', rowId, productId: 'sk-034', pickId });
     expect(needsCommit(ok.rows[0]!)).toBe(false);
   });
 
   it('строка без веса или с весом 0 не пишется в справочник', () => {
-    let s = initialDishState();
-    const id = s.rows[0]!.id;
-    s = dishReducer(s, { type: 'pick', rowId: id, product: milk });
-    expect(needsCommit(s.rows[0]!)).toBe(false);
-    s = dishReducer(s, { type: 'setWeight', rowId: id, weight: '0' });
-    expect(needsCommit(s.rows[0]!)).toBe(false);
+    const { state, rowId } = withMilk();
+    expect(needsCommit(state.rows[0]!)).toBe(false);
+    const zero = dishReducer(state, { type: 'setWeight', rowId, weight: '0' });
+    expect(needsCommit(zero.rows[0]!)).toBe(false);
+  });
+
+  it('название блюда и заметка тоже считаются содержимым', () => {
+    expect(hasContent({ ...initialDishState(), note: 'на 4 порции' })).toBe(true);
+    expect(hasContent({ ...initialDishState(), name: 'Плов' })).toBe(true);
   });
 });
