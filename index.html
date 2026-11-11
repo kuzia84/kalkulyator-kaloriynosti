@@ -9,6 +9,13 @@
     />
     <meta name="theme-color" content="#2f7d4f" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script>
+      // Тема до запуска приложения, чтобы страница не мигала. Ключ — THEME_STORAGE_KEY.
+      try {
+        var t = localStorage.getItem('kk-theme');
+        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    </script>
     <title>Калькулятор калорийности блюда</title>
   </head>
   <body>

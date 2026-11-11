@@ -103,6 +103,7 @@ export async function searchOff(
   query: string,
   signal: AbortSignal,
   fetchImpl: typeof fetch = fetch,
+  pageSize = 20,
 ): Promise<ExternalProduct[]> {
   if (!offSearchLimiter.tryTake()) throw new RateLimitError('off');
   const url = new URL(OFF_SEARCH_URL);
@@ -110,7 +111,7 @@ export async function searchOff(
   url.searchParams.set('search_simple', '1');
   url.searchParams.set('json', '1');
   url.searchParams.set('lc', 'ru');
-  url.searchParams.set('page_size', '20');
+  url.searchParams.set('page_size', String(pageSize));
   url.searchParams.set('fields', OFF_FIELDS);
   const res = await fetchImpl(url, { signal, headers: { Accept: 'application/json' } });
   if (!res.ok) throw new HttpError(res.status);
@@ -140,8 +141,8 @@ export async function offByBarcode(
 // ---------- USDA FoodData Central ----------
 
 export const USDA_SEARCH_URL = 'https://api.nal.usda.gov/fdc/v1/foods/search';
-// Лимит USDA — 1000 запросов в час с ключа. Приложение берёт не больше 30 в минуту.
-export const usdaLimiter = new RateLimiter(30, 60_000);
+// Лимит USDA — 1000 запросов в час с ключа. Приложение берёт не больше 16 в минуту (960 в час).
+export const usdaLimiter = new RateLimiter(16, 60_000);
 
 interface UsdaNutrient {
   nutrientId?: number;
@@ -206,12 +207,13 @@ export async function searchUsda(
   apiKey: string,
   signal: AbortSignal,
   fetchImpl: typeof fetch = fetch,
+  pageSize = 20,
 ): Promise<ExternalProduct[]> {
   if (!usdaLimiter.tryTake()) throw new RateLimitError('usda');
   const url = new URL(USDA_SEARCH_URL);
   url.searchParams.set('api_key', apiKey);
   url.searchParams.set('query', query);
-  url.searchParams.set('pageSize', '20');
+  url.searchParams.set('pageSize', String(pageSize));
   const res = await fetchImpl(url, { signal, headers: { Accept: 'application/json' } });
   if (!res.ok) throw new HttpError(res.status);
   const data = (await res.json()) as { foods?: UsdaFood[] };

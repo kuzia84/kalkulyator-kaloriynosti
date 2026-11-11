@@ -17,11 +17,12 @@ export function sanitizeSettings(raw: Partial<Settings> | undefined): Settings {
   const enabled = Array.isArray(s.enabledSources)
     ? s.enabledSources.filter((x) => SOURCES.includes(x))
     : DEFAULT_SETTINGS.enabledSources;
-  const limit = Number(s.suggestionsLimit);
+  const limit = s.suggestionsLimit;
   return {
-    suggestionsLimit: Number.isFinite(limit)
-      ? Math.min(SUGGESTIONS_MAX, Math.max(SUGGESTIONS_MIN, Math.round(limit)))
-      : DEFAULT_SETTINGS.suggestionsLimit,
+    suggestionsLimit:
+      typeof limit === 'number' && Number.isFinite(limit)
+        ? Math.min(SUGGESTIONS_MAX, Math.max(SUGGESTIONS_MIN, Math.round(limit)))
+        : DEFAULT_SETTINGS.suggestionsLimit,
     sourcesOrder: order,
     enabledSources: [...new Set(enabled)],
     usdaApiKey: typeof s.usdaApiKey === 'string' ? s.usdaApiKey.trim() : '',

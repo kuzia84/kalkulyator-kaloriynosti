@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { ROUTES, useRoute, type Route } from '../app/router';
 import { SettingsProvider, useSettings } from '../app/settingsContext';
+import { applyTheme } from '../app/theme';
 import { useOnline } from '../app/useOnline';
 import { useDish } from '../dish/useDish';
 import { CalculatorPage } from './CalculatorPage';
@@ -19,11 +20,7 @@ function Shell() {
   const undo = useUndo();
   const page = PAGES.includes(route) ? route : 'calculator';
 
-  useEffect(() => {
-    const root = document.documentElement;
-    if (settings.theme === 'system') root.removeAttribute('data-theme');
-    else root.setAttribute('data-theme', settings.theme);
-  }, [settings.theme]);
+  useEffect(() => applyTheme(settings.theme), [settings.theme]);
 
   const ready = dish.ready && settingsReady;
 

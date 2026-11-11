@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { searchLocal } from '../catalog/catalog';
-import type { Settings } from '../storage/schema';
-import { SOURCE_LABELS } from '../storage/schema';
+import { DEFAULT_SETTINGS, SOURCE_LABELS, type Settings } from '../storage/schema';
 import type { ExternalProduct } from './external';
 import { activeSources, MIN_EXTERNAL_QUERY, searchExternal } from './externalSearch';
 import { suggestionFromProduct, type Suggestion } from './types';
@@ -60,8 +59,21 @@ export function useSuggestions(
 ): SuggestionsState {
   const [state, setState] = useState<SuggestionsState>({ items: [], loading: false });
   const limit = settings.suggestionsLimit;
-  const wantsExternal =
-    online && activeSources(settings).length > 0 && query.trim().length >= MIN_EXTERNAL_QUERY;
+  const sources = activeSources(settings);
+  // Поиск зависит только от этих настроек. Смена темы не перезапускает запросы.
+  const sourcesKey = sources.join(',');
+  const usdaKey = settings.usdaApiKey;
+  const wantsExternal = online && sources.length > 0 && query.trim().length >= MIN_EXTERNAL_QUERY;
+  const searchSettings = useMemo<Settings>(
+    () => ({
+      ...DEFAULT_SETTINGS,
+      suggestionsLimit: limit,
+      sourcesOrder: sourcesKey ? (sourcesKey.split(',') as Settings['sourcesOrder']) : [],
+      enabledSources: sourcesKey ? (sourcesKey.split(',') as Settings['enabledSources']) : [],
+      usdaApiKey: usdaKey,
+    }),
+    [limit, sourcesKey, usdaKey],
+  );
 
   useEffect(() => {
     if (!enabled || query.trim() === '') {
@@ -85,7 +97,7 @@ export function useSuggestions(
     let timer: ReturnType<typeof setTimeout> | undefined;
     if (wantsExternal) {
       timer = setTimeout(() => {
-        Promise.all([searchExternal(query, settings, controller.signal), localDone])
+        Promise.all([searchExternal(query, searchSettings, controller.signal), localDone])
           .then(([external]) => {
             if (cancelled) return;
             const failed = external.failed.map((s) => SOURCE_LABELS[s]).join(', ');
@@ -97,6 +109,12 @@ export function useSuggestions(
           })
           .catch(() => {
             // Отмена: пользователь ввёл следующую букву, ответ больше не нужен.
+            if (cancelled || controller.signal.aborted) return;
+            setState({
+              items: local,
+              loading: false,
+              notice: 'Внешний поиск не ответил. Показан справочник.',
+            });
           });
       }, EXTERNAL_DEBOUNCE_MS);
     }
@@ -106,8 +124,7 @@ export function useSuggestions(
       clearTimeout(timer);
       controller.abort();
     };
-    // settings входит целиком: смена ключа или порядка источников меняет ответ.
-  }, [query, enabled, limit, wantsExternal, settings]);
+  }, [query, enabled, limit, wantsExternal, searchSettings]);
 
   if (!online && enabled && query.trim() !== '') {
     return { ...state, notice: 'Нет интернета: поиск только по справочнику.' };

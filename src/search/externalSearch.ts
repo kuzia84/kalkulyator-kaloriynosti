@@ -1,3 +1,4 @@
+import { normalizeBarcode } from '../catalog/normalize';
 import { db as defaultDb, type AppDB } from '../storage/db';
 import type { ExternalSource, Settings } from '../storage/schema';
 import { cacheKey, offByBarcode, searchOff, searchUsda, type ExternalProduct } from './external';
@@ -23,9 +24,11 @@ export function activeSources(settings: Settings): ExternalSource[] {
 }
 
 function fetcherFor(source: ExternalSource, settings: Settings, fetchImpl: typeof fetch): Fetcher {
+  // Размер страницы — число подсказок из настроек: столько и покажет список.
+  const size = settings.suggestionsLimit;
   return source === 'off'
-    ? (q, signal) => searchOff(q, signal, fetchImpl)
-    : (q, signal) => searchUsda(q, settings.usdaApiKey.trim(), signal, fetchImpl);
+    ? (q, signal) => searchOff(q, signal, fetchImpl, size)
+    : (q, signal) => searchUsda(q, settings.usdaApiKey.trim(), signal, fetchImpl, size);
 }
 
 async function readCache(db: AppDB, key: string, now: number): Promise<ExternalProduct[] | null> {
@@ -47,8 +50,8 @@ async function writeCache(db: AppDB, key: string, products: ExternalProduct[], n
 }
 
 /**
- * Ищет продукт по названию во внешних источниках по очереди из настроек.
- * Ответы кэшируются в IndexedDB на 7 дней. Отмена через `signal` прерывает запросы.
+ * Ищет продукт по названию во всех включённых внешних источниках одновременно.
+ * Результаты идут в порядке источников из настроек. Ответы кэшируются в IndexedDB на 7 дней. Отмена через `signal` прерывает запросы.
  */
 export async function searchExternal(
   query: string,
@@ -65,14 +68,16 @@ export async function searchExternal(
   const sources = activeSources(settings);
   const responses = await Promise.all(
     sources.map(async (source) => {
-      const key = cacheKey(source, query);
+      // Ключ кэша учитывает размер страницы: при большем лимите нужен новый запрос.
+      const key = `${cacheKey(source, query)}:${settings.suggestionsLimit}`;
       const cached = await readCache(db, key, now);
       if (cached) return { source, products: cached };
       // Запрос отменили, пока читался кэш: в сеть не идём.
       signal.throwIfAborted();
       try {
         const products = await fetcherFor(source, settings, fetchImpl)(query.trim(), signal);
-        await writeCache(db, key, products, now);
+        // Пустой ответ не кэшируется: он может быть временным сбоем индекса источника.
+        if (products.length > 0) await writeCache(db, key, products, now);
         return { source, products };
       } catch (error) {
         if (signal.aborted) throw error;
@@ -88,7 +93,8 @@ export async function searchExternal(
 }
 
 /**
- * Ищет продукт по штрихкоду во внешних источниках по очереди из настроек.
+ * Ищет продукт по штрихкоду во внешних источниках по очереди из настроек
+ * (первый найденный ответ останавливает поиск). Вызывается из окна поиска по штрихкоду.
  * Open Food Facts ищет по коду напрямую. USDA ищет код как текст среди Branded Foods,
  * поэтому ответ проверяется по полю gtinUpc.
  * Ошибка одного источника не мешает спросить следующий. Если не ответил ни один — ошибка.
@@ -99,21 +105,22 @@ export async function lookupBarcodeExternal(
   signal: AbortSignal,
   fetchImpl: typeof fetch = fetch,
 ): Promise<ExternalProduct | null> {
+  const normalized = normalizeBarcode(code);
   const sources = activeSources(settings);
   let lastError: unknown = null;
   let answered = false;
   for (const source of sources) {
     try {
       if (source === 'off') {
-        const found = await offByBarcode(code, signal, fetchImpl);
+        const found = await offByBarcode(normalized, signal, fetchImpl);
         answered = true;
         if (found) return found;
       } else {
-        const foods = await searchUsda(code, settings.usdaApiKey.trim(), signal, fetchImpl);
+        const foods = await searchUsda(normalized, settings.usdaApiKey.trim(), signal, fetchImpl);
         answered = true;
-        const found = foods.find(
-          (f) => f.barcode && f.barcode.replace(/^0+/, '') === code.replace(/^0+/, ''),
-        );
+        // USDA хранит UPC без ведущего нуля или с ним: сравнение — без ведущих нулей.
+        const bare = normalized.replace(/^0+/, '');
+        const found = foods.find((f) => f.barcode && f.barcode.replace(/^0+/, '') === bare);
         if (found) return found;
       }
     } catch (error) {

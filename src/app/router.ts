@@ -27,8 +27,3 @@ export function useRoute(): Route {
     () => 'calculator',
   );
 }
-
-export function navigate(route: Route) {
-  const target = ROUTES.find((r) => r.route === route);
-  if (target) window.location.hash = target.hash;
-}

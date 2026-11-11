@@ -3,12 +3,14 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react';
 import { DEFAULT_SETTINGS, type Settings } from '../storage/schema';
 import { loadSettings, saveSettings } from '../storage/settings';
+import { rememberTheme } from './theme';
 
 interface SettingsContextValue {
   settings: Settings;
@@ -34,6 +36,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       .then((s) => {
         if (!cancelled) {
           current.current = s;
+          rememberTheme(s.theme);
           setSettings(s);
         }
       })
@@ -50,16 +53,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const next = { ...current.current, ...patch };
     current.current = next;
     setSettings(next);
+    rememberTheme(next.theme);
     saveSettings(next).catch((error: unknown) =>
       console.error('Не удалось сохранить настройки', error),
     );
   }, []);
 
-  return (
-    <SettingsContext.Provider value={{ settings, ready, update }}>
-      {children}
-    </SettingsContext.Provider>
-  );
+  const value = useMemo(() => ({ settings, ready, update }), [settings, ready, update]);
+
+  return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
 
 export function useSettings(): SettingsContextValue {

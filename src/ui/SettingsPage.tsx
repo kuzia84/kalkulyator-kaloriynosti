@@ -29,9 +29,10 @@ export function SettingsPage() {
   // Число применяется после ухода из поля: иначе при вводе «20» первая «2» сразу стала бы 5.
   function commitLimit() {
     const v = Math.round(Number(limitDraft));
-    const next = Number.isFinite(v)
-      ? Math.min(SUGGESTIONS_MAX, Math.max(SUGGESTIONS_MIN, v))
-      : settings.suggestionsLimit;
+    const next =
+      limitDraft.trim() !== '' && Number.isFinite(v)
+        ? Math.min(SUGGESTIONS_MAX, Math.max(SUGGESTIONS_MIN, v))
+        : settings.suggestionsLimit;
     setLimitDraft(String(next));
     if (next !== settings.suggestionsLimit) update({ suggestionsLimit: next });
   }
