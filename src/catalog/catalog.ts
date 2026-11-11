@@ -38,13 +38,14 @@ export async function searchLocal(
   return found.sort(compareByPopularity).slice(0, limit);
 }
 
+/** Ищет продукт по штрихкоду. Можно передать несколько вариантов записи одного кода. */
 export async function findByBarcode(
-  code: string,
+  code: string | string[],
   db: AppDB = defaultDb,
 ): Promise<Product | undefined> {
-  const normalized = normalizeBarcode(code);
-  if (!normalized) return undefined;
-  const found = await db.products.where('barcode').equals(normalized).toArray();
+  const codes = (Array.isArray(code) ? code : [code]).map(normalizeBarcode).filter(Boolean);
+  if (codes.length === 0) return undefined;
+  const found = await db.products.where('barcode').anyOf(codes).toArray();
   // Проверенная модератором запись надёжнее остальных.
   return found.sort(
     (a, b) => Number(b.verified) - Number(a.verified) || compareByPopularity(a, b),

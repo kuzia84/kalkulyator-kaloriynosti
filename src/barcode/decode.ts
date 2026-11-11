@@ -41,12 +41,18 @@ export function getNativeDetector(): Promise<BarcodeDetectorLike | null> {
   return detectorPromise;
 }
 
+type ZxingControls = { stop(): void };
+
 type ZxingReader = {
   decodeFromImageUrl(url: string): Promise<{ getText(): string }>;
   decodeFromVideoElement(
     video: HTMLVideoElement,
-    callback: (result: { getText(): string } | undefined) => void,
-  ): Promise<{ stop(): void }>;
+    callback: (
+      result: { getText(): string } | undefined,
+      error: unknown,
+      controls: ZxingControls,
+    ) => void,
+  ): Promise<ZxingControls>;
 };
 
 let zxingPromise: Promise<ZxingReader> | null = null;
@@ -143,12 +149,14 @@ export async function scanVideo(
   }
   const reader = await getZxingReader();
   let done = false;
-  const controls = await reader.decodeFromVideoElement(video, (result) => {
+  // ZXing вызывает обработчик первого кадра ещё до того, как вернёт controls,
+  // поэтому остановка идёт через третий аргумент обработчика.
+  const controls = await reader.decodeFromVideoElement(video, (result, _error, ctrl) => {
     if (done || !result) return;
     const code = firstValid([result.getText()]);
     if (code) {
       done = true;
-      controls.stop();
+      ctrl.stop();
       onCode(code);
     }
   });

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useSettings } from '../app/settingsContext';
 import { useOnline } from '../app/useOnline';
 import { decodeImageFile, scanVideo } from '../barcode/decode';
@@ -39,37 +39,42 @@ export function BarcodeDialog({ rowLabel, onPick, onManual, onClose }: BarcodeDi
   const [manualCode, setManualCode] = useState('');
   const [manualError, setManualError] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
-  const stopRef = useRef<(() => void) | null>(null);
   const lookupAbort = useRef<AbortController | null>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const galleryInput = useRef<HTMLInputElement>(null);
+  // Свежие настройки и состояние сети для поиска, запущенного из камеры или после распознавания.
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+  const onlineRef = useRef(online);
+  onlineRef.current = online;
+  const alive = useRef(true);
+  // Номер последнего действия: результат устаревшего распознавания фото отбрасывается.
+  const actionId = useRef(0);
 
-  function stopCamera() {
-    stopRef.current?.();
-    stopRef.current = null;
-    const video = videoRef.current;
-    const stream = video?.srcObject as MediaStream | null;
-    stream?.getTracks().forEach((t) => t.stop());
-    if (video) video.srcObject = null;
-  }
-
-  useEffect(
-    () => () => {
-      stopCamera();
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
       lookupAbort.current?.abort();
-    },
-    [],
-  );
+    };
+  }, []);
 
-  async function search(code: string) {
-    stopCamera();
+  const search = useCallback(async (code: string) => {
+    if (!alive.current) return;
+    actionId.current += 1;
     lookupAbort.current?.abort();
     const controller = new AbortController();
     lookupAbort.current = controller;
+    // Смена фазы останавливает камеру (см. эффект ниже).
     setPhase({ kind: 'searching', code });
     try {
-      const result = await lookupBarcode(code, settings, online, controller.signal);
-      if (controller.signal.aborted) return;
+      const result = await lookupBarcode(
+        code,
+        settingsRef.current,
+        onlineRef.current,
+        controller.signal,
+      );
+      if (controller.signal.aborted || !alive.current) return;
       if (result.status === 'found') setPhase({ kind: 'found', code, product: result.product });
       else if (result.status === 'not-found')
         setPhase({ kind: 'not-found', code, offline: result.offline });
@@ -77,18 +82,67 @@ export function BarcodeDialog({ rowLabel, onPick, onManual, onClose }: BarcodeDi
     } catch {
       // Окно закрыли или начали новый поиск.
     }
-  }
+  }, []);
+
+  // Камера живёт ровно столько, сколько фаза «camera». Любая другая фаза и закрытие окна
+  // останавливают поток и сканирование, в том числе если они ещё не успели запуститься.
+  const cameraOn = phase.kind === 'camera';
+  useEffect(() => {
+    if (!cameraOn) return;
+    const video = videoRef.current;
+    let cancelled = false;
+    let stream: MediaStream | null = null;
+    let stopScan: (() => void) | null = null;
+    (async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false,
+        });
+        if (cancelled || !video) return;
+        video.srcObject = stream;
+        await video.play();
+        if (cancelled) return;
+        const stop = await scanVideo(video, (code) => {
+          if (!cancelled) void search(code);
+        });
+        if (cancelled) stop();
+        else stopScan = stop;
+      } catch {
+        if (!cancelled) {
+          setPhase({
+            kind: 'camera-error',
+            message:
+              'Камера недоступна. Разрешите доступ к камере в настройках браузера или загрузите фото.',
+          });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      stopScan?.();
+      stream?.getTracks().forEach((t) => t.stop());
+      if (video) video.srcObject = null;
+    };
+  }, [cameraOn, search]);
 
   async function onFile(file: File | undefined) {
     if (!file) return;
-    stopCamera();
+    actionId.current += 1;
+    const id = actionId.current;
+    lookupAbort.current?.abort();
     setPhase({ kind: 'decoding' });
     const code = await decodeImageFile(file);
+    if (!alive.current || id !== actionId.current) return;
     if (code) void search(code);
     else setPhase({ kind: 'unreadable' });
   }
 
-  async function startCamera() {
+  function toggleCamera() {
+    if (cameraOn) {
+      setPhase({ kind: 'idle' });
+      return;
+    }
     if (!navigator.mediaDevices?.getUserMedia) {
       setPhase({
         kind: 'camera-error',
@@ -96,28 +150,9 @@ export function BarcodeDialog({ rowLabel, onPick, onManual, onClose }: BarcodeDi
       });
       return;
     }
+    actionId.current += 1;
+    lookupAbort.current?.abort();
     setPhase({ kind: 'camera' });
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-        audio: false,
-      });
-      const video = videoRef.current;
-      if (!video) {
-        stream.getTracks().forEach((t) => t.stop());
-        return;
-      }
-      video.srcObject = stream;
-      await video.play();
-      stopRef.current = await scanVideo(video, (code) => void search(code));
-    } catch {
-      stopCamera();
-      setPhase({
-        kind: 'camera-error',
-        message:
-          'Камера недоступна. Разрешите доступ к камере в настройках браузера или загрузите фото.',
-      });
-    }
   }
 
   function submitManual(e: FormEvent) {
@@ -132,13 +167,7 @@ export function BarcodeDialog({ rowLabel, onPick, onManual, onClose }: BarcodeDi
   }
 
   return (
-    <Modal
-      title="Поиск по штрихкоду"
-      onClose={() => {
-        stopCamera();
-        onClose();
-      }}
-    >
+    <Modal title="Поиск по штрихкоду" onClose={onClose}>
       <p className="hint">
         {rowLabel}. Штрихкод распознаётся на устройстве, фото никуда не отправляется.
       </p>
@@ -149,12 +178,8 @@ export function BarcodeDialog({ rowLabel, onPick, onManual, onClose }: BarcodeDi
         <button type="button" className="button" onClick={() => galleryInput.current?.click()}>
           Фото из галереи
         </button>
-        <button
-          type="button"
-          className="button"
-          onClick={() => (phase.kind === 'camera' ? stopCamera() : void startCamera())}
-        >
-          {phase.kind === 'camera' ? 'Остановить камеру' : 'Сканировать камерой'}
+        <button type="button" className="button" onClick={toggleCamera}>
+          {cameraOn ? 'Остановить камеру' : 'Сканировать камерой'}
         </button>
         <input
           ref={cameraInput}

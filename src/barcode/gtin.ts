@@ -71,10 +71,10 @@ export function barcodeVariants(input: string): string[] {
   const kind = barcodeKind(code);
   if (kind === 'upca') variants.add(`0${code}`);
   if (kind === 'ean13' && code.startsWith('0')) variants.add(code.slice(1));
-  // 8 цифр бывают и EAN-8, и UPC-E: для поиска берём обе формы.
-  if (code.length === 8 && kind != null) {
+  // Код, верный как EAN-8, считается EAN-8: его развёртка как UPC-E дала бы чужой товар.
+  if (kind === 'upce') {
     const upca = expandUpcE(code);
-    if (upca && gtinCheckDigit(upca.slice(0, -1)) === Number(upca[11])) {
+    if (upca && hasValidGtinCheck(upca)) {
       variants.add(upca);
       variants.add(`0${upca}`);
     }

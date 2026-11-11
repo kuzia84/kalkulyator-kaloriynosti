@@ -95,32 +95,39 @@ export async function searchExternal(
 /**
  * Ищет продукт по штрихкоду во внешних источниках по очереди из настроек
  * (первый найденный ответ останавливает поиск). Вызывается из окна поиска по штрихкоду.
- * Open Food Facts ищет по коду напрямую. USDA ищет код как текст среди Branded Foods,
- * поэтому ответ проверяется по полю gtinUpc.
+ * `codes` — варианты записи одного кода (UPC-A и EAN-13 с нулём и т. п.).
+ * Open Food Facts спрашивается по каждому варианту. USDA ищет код как текст среди Branded Foods
+ * один раз: ответ сравнивается со всеми вариантами без ведущих нулей.
  * Ошибка одного источника не мешает спросить следующий. Если не ответил ни один — ошибка.
  */
 export async function lookupBarcodeExternal(
-  code: string,
+  codes: string | string[],
   settings: Settings,
   signal: AbortSignal,
   fetchImpl: typeof fetch = fetch,
 ): Promise<ExternalProduct | null> {
-  const normalized = normalizeBarcode(code);
+  const variants = [
+    ...new Set((Array.isArray(codes) ? codes : [codes]).map(normalizeBarcode).filter(Boolean)),
+  ];
+  if (variants.length === 0) return null;
+  const bare = new Set(variants.map((v) => v.replace(/^0+/, '')));
   const sources = activeSources(settings);
   let lastError: unknown = null;
   let answered = false;
   for (const source of sources) {
     try {
       if (source === 'off') {
-        const found = await offByBarcode(normalized, signal, fetchImpl);
-        answered = true;
-        if (found) return found;
+        for (const variant of variants) {
+          const found = await offByBarcode(variant, signal, fetchImpl);
+          answered = true;
+          if (found) return found;
+        }
       } else {
-        const foods = await searchUsda(normalized, settings.usdaApiKey.trim(), signal, fetchImpl);
-        answered = true;
         // USDA хранит UPC без ведущего нуля или с ним: сравнение — без ведущих нулей.
-        const bare = normalized.replace(/^0+/, '');
-        const found = foods.find((f) => f.barcode && f.barcode.replace(/^0+/, '') === bare);
+        const query = variants[0]!.replace(/^0+/, '');
+        const foods = await searchUsda(query, settings.usdaApiKey.trim(), signal, fetchImpl);
+        answered = true;
+        const found = foods.find((f) => f.barcode && bare.has(f.barcode.replace(/^0+/, '')));
         if (found) return found;
       }
     } catch (error) {
