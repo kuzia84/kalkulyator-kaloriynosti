@@ -35,6 +35,10 @@ export interface DishRow {
   source?: ProductSource;
   barcode?: string;
   externalId?: string;
+  /** Метка выбора продукта: новая при каждом выборе. Связывает ответ справочника с выбором. */
+  pickId?: string;
+  /** Продукт строки уже записан в справочник (ранг учтён). Сбрасывается при смене продукта. */
+  committed?: boolean;
 }
 
 export interface Dish {

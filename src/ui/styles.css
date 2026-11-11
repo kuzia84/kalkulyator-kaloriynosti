@@ -1,0 +1,698 @@
+:root {
+  color-scheme: light;
+  --bg: #f6f7f4;
+  --surface: #ffffff;
+  --surface-2: #eef1ec;
+  --text: #1c211d;
+  --text-muted: #56605a;
+  --border: #c9d0ca;
+  --accent: #2f7d4f;
+  --accent-strong: #236140;
+  --accent-contrast: #ffffff;
+  --focus: #1b5fd1;
+  --warning-bg: #fff4d6;
+  --warning-text: #5c4300;
+  --note-bg: #e4f1ff;
+  --note-text: #0f3f73;
+  --danger: #b3261e;
+  --shadow: 0 6px 24px rgb(0 0 0 / 12%);
+  --radius: 10px;
+  --control-height: 48px;
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #121513;
+    --surface: #1b1f1c;
+    --surface-2: #242a26;
+    --text: #e8ece9;
+    --text-muted: #a7b1aa;
+    --border: #3b443e;
+    --accent: #6cc493;
+    --accent-strong: #8fd6ad;
+    --accent-contrast: #0d1a12;
+    --focus: #8ab4ff;
+    --warning-bg: #3d3010;
+    --warning-text: #ffe3a1;
+    --note-bg: #13283f;
+    --note-text: #bcdcff;
+    --danger: #ff8a80;
+    --shadow: 0 6px 24px rgb(0 0 0 / 50%);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #121513;
+  --surface: #1b1f1c;
+  --surface-2: #242a26;
+  --text: #e8ece9;
+  --text-muted: #a7b1aa;
+  --border: #3b443e;
+  --accent: #6cc493;
+  --accent-strong: #8fd6ad;
+  --accent-contrast: #0d1a12;
+  --focus: #8ab4ff;
+  --warning-bg: #3d3010;
+  --warning-text: #ffe3a1;
+  --note-bg: #13283f;
+  --note-text: #bcdcff;
+  --danger: #ff8a80;
+  --shadow: 0 6px 24px rgb(0 0 0 / 50%);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+h2 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Каркас */
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px 16px;
+  padding-top: max(10px, env(safe-area-inset-top));
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-logo {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.app-title {
+  font-weight: 600;
+}
+
+.app-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.app-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.app-nav a[aria-current='page'] {
+  background: var(--surface-2);
+  font-weight: 600;
+}
+
+.app-main {
+  flex: 1;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 16px;
+  padding-bottom: 96px;
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hint {
+  color: var(--text-muted);
+  margin: 4px 0 12px;
+}
+
+.note,
+.warning,
+.banner {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.note {
+  background: var(--note-bg);
+  color: var(--note-text);
+}
+
+.warning {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+/* Элементы управления */
+
+.input {
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  /* 16px и больше: Safari на iPhone не увеличивает страницу при фокусе. */
+  font: inherit;
+  font-size: 1.05rem;
+}
+
+.input-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.button,
+.button-icon {
+  font: inherit;
+  cursor: pointer;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.button-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
+.button-small {
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.button-icon {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.button-add {
+  width: 100%;
+  border-style: dashed;
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.field > span:first-child {
+  font-weight: 500;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.badge-off,
+.badge-usda {
+  background: var(--note-bg);
+  color: var(--note-text);
+}
+
+/* Таблица блюда */
+
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.dish-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dish-table th,
+.dish-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.dish-table thead th {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: right;
+  background: var(--surface-2);
+}
+
+.dish-table thead th:first-child {
+  text-align: left;
+  border-top-left-radius: var(--radius);
+}
+
+.dish-table thead th:last-child {
+  border-top-right-radius: var(--radius);
+}
+
+.dish-table .cell-name {
+  width: 38%;
+  min-width: 220px;
+}
+
+.dish-table .cell-weight {
+  width: 120px;
+}
+
+.dish-table .cell-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dish-summary th {
+  text-align: left;
+  font-weight: 600;
+}
+
+.row-total {
+  background: var(--surface-2);
+}
+
+.row-total .cell-number {
+  font-weight: 700;
+}
+
+.row-cooked th label {
+  cursor: pointer;
+}
+
+.row-cooked-hint td {
+  border-bottom: 0;
+  padding-top: 0;
+}
+
+.row-cooked-hint p {
+  margin: 0;
+}
+
+.name-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Подсказки */
+
+.combobox {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.combobox-popup {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  min-width: min(320px, calc(100vw - 32px));
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.combobox-popup[hidden] {
+  display: none;
+}
+
+.combobox-list {
+  --option-height: 52px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* Видно до 5 пунктов, остальные — прокруткой. */
+  max-height: calc(var(--option-height) * 5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.combobox-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: var(--option-height);
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.combobox-option[aria-selected='true'],
+.combobox-option:hover {
+  background: var(--surface-2);
+}
+
+.combobox-option[aria-selected='true'] {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.option-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.option-detail {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.option-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: none;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.combobox-manual {
+  color: var(--accent-strong);
+  font-weight: 600;
+  border-top: 1px solid var(--border);
+}
+
+.combobox-status {
+  margin: 0;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+
+/* Модальное окно */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 45%);
+}
+
+.modal {
+  width: min(520px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* Уведомление с отменой */
+
+.toast-region {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 560px;
+  padding: 6px 6px 6px 14px;
+  background: var(--text);
+  color: var(--bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.toast .button-icon {
+  background: transparent;
+  border: 0;
+  color: inherit;
+}
+
+/* Телефон: строки таблицы становятся карточками. */
+
+@media (max-width: 720px) {
+  .app-main {
+    padding: 12px 16px 96px;
+  }
+
+  .table-wrap {
+    background: transparent;
+    border: 0;
+  }
+
+  .dish-table,
+  .dish-table tbody,
+  .dish-table tr,
+  .dish-table th,
+  .dish-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .dish-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .dish-table tr {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px 8px;
+    margin-bottom: 12px;
+    padding: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .dish-table th,
+  .dish-table td {
+    padding: 0;
+    border: 0;
+  }
+
+  .dish-table .cell-name,
+  .dish-summary th,
+  .row-add td,
+  .row-cooked-hint td {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  .dish-table .cell-name,
+  .dish-table .cell-weight {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  /* В строках итогов вес идёт в один ряд с ккал и БЖУ. */
+  .dish-summary tr {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .dish-summary .row-cooked {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .dish-summary .row-cooked .cell-weight {
+    grid-column: 1 / -1;
+  }
+
+  .dish-summary .cell-weight {
+    width: auto;
+  }
+
+  .dish-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: left;
+    white-space: normal;
+  }
+
+  .dish-table .cell-number {
+    text-align: left;
+    white-space: normal;
+  }
+
+  .ingredient-row.is-open {
+    position: relative;
+    z-index: 5;
+  }
+
+  .row-add,
+  .row-cooked-hint {
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+  }
+
+  .field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media print {
+  .app-header,
+  .page-actions,
+  .row-add,
+  .button-icon,
+  .toast-region,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+}

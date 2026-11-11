@@ -33,7 +33,8 @@ export class AppDB extends Dexie {
       meta: 'id',
     });
     // Каждое открытие базы доводит стартовый набор до текущей версии SEED_VERSION.
-    this.on('ready', (db) => syncSeed(db as AppDB));
+    // Третий аргумент true: обработчик срабатывает при каждом открытии, а не только при первом.
+    this.on('ready', (db) => syncSeed(db as AppDB), true);
   }
 }
 
