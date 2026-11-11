@@ -11,6 +11,11 @@ describe('маршруты', () => {
     expect(recipeEditId(recipeEditHash('a b/с'))).toBe('a b/с');
   });
 
+  it('испорченный %-код в адресе не роняет разбор', () => {
+    expect(recipeEditId('#/recipes/edit/%E0%A4')).toBe('%E0%A4');
+    expect(routeFromHash('#/recipes/edit/%E0%A4')).toBe('recipes');
+  });
+
   it('без id экрана правки нет', () => {
     expect(recipeEditId('#/recipes/edit/')).toBeNull();
     expect(recipeEditId('#/recipes')).toBeNull();

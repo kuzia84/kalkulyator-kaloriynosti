@@ -38,6 +38,7 @@ export type DishAction =
   | { type: 'setDishName'; value: string }
   | { type: 'setNote'; value: string }
   | { type: 'setRecipeId'; value: string }
+  | { type: 'unlinkRecipe' }
   | { type: 'replace'; state: DishState };
 
 /** Действие выбора продукта. `pickId` отличает этот выбор от следующих в той же строке. */
@@ -125,6 +126,11 @@ export function dishReducer(state: DishState, action: DishAction): DishState {
       return { ...state, note: action.value };
     case 'setRecipeId':
       return { ...state, recipeId: action.value };
+    case 'unlinkRecipe': {
+      const next = { ...state };
+      delete next.recipeId;
+      return next;
+    }
     case 'replace':
       return action.state;
   }
@@ -146,4 +152,15 @@ export function hasContent(state: DishState): boolean {
     state.cookedWeight.trim() !== '' ||
     state.portionWeight.trim() !== ''
   );
+}
+
+/** Содержимое блюда без служебных полей строк: по нему видно, правил ли пользователь блюдо. */
+export function dishContentKey(state: DishState): string {
+  return JSON.stringify({
+    name: state.name,
+    cookedWeight: state.cookedWeight,
+    portionWeight: state.portionWeight,
+    note: state.note,
+    rows: state.rows.map((r) => [r.name, r.weight, r.per100 ?? null]),
+  });
 }

@@ -20,6 +20,45 @@ function cleanRows(state: DishState): Dish['rows'] {
   return state.rows.filter((r) => r.name.trim() !== '' || r.weight.trim() !== '');
 }
 
+function buildRecipe(state: DishState, id: string, existing: Dish | undefined, now: number): Dish {
+  return {
+    id,
+    name: state.name.trim() || 'Без названия',
+    rows: cleanRows(state),
+    cookedWeight: state.cookedWeight,
+    portionWeight: state.portionWeight,
+    note: state.note,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  };
+}
+
+/** Рецепта для обновления уже нет в базе. */
+export class RecipeNotFoundError extends Error {
+  constructor() {
+    super('Рецепт не найден.');
+    this.name = 'RecipeNotFoundError';
+  }
+}
+
+/**
+ * Обновляет существующий рецепт `state.recipeId`. Новый рецепт не создаёт:
+ * если рецепт удалили, пока шла правка, бросает RecipeNotFoundError.
+ */
+export async function updateRecipe(
+  state: DishState,
+  db: AppDB = defaultDb,
+  now = Date.now(),
+): Promise<Dish> {
+  return db.transaction('rw', db.recipes, async () => {
+    const existing = state.recipeId ? await db.recipes.get(state.recipeId) : undefined;
+    if (!existing) throw new RecipeNotFoundError();
+    const recipe = buildRecipe(state, existing.id, existing, now);
+    await db.recipes.put(recipe);
+    return recipe;
+  });
+}
+
 /**
  * Сохраняет блюдо в «Мои рецепты». Если черновик открыт из рецепта (`recipeId`),
  * рецепт обновляется, иначе создаётся новый. Возвращает id рецепта.
@@ -32,17 +71,7 @@ export async function saveRecipe(
   return db.transaction('rw', db.recipes, async () => {
     const existing = state.recipeId ? await db.recipes.get(state.recipeId) : undefined;
     const id = existing?.id ?? newId();
-    const recipe: Dish = {
-      id,
-      name: state.name.trim() || 'Без названия',
-      rows: cleanRows(state),
-      cookedWeight: state.cookedWeight,
-      portionWeight: state.portionWeight,
-      note: state.note,
-      createdAt: existing?.createdAt ?? now,
-      updatedAt: now,
-    };
-    await db.recipes.put(recipe);
+    await db.recipes.put(buildRecipe(state, id, existing, now));
     return id;
   });
 }

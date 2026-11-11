@@ -44,6 +44,13 @@ export function RecipesPage(props: RecipesPageProps) {
   const editId = recipeEditId(useHash());
   const [notice, setNotice] = useState('');
   const returned = useRef(false);
+  const { current, dispatch } = props;
+
+  // Список после экрана правки — внутри того же раздела, App фокус не переводит.
+  // Это верно и для кнопки «Назад» браузера, поэтому метка ставится при входе в правку.
+  useEffect(() => {
+    if (editId != null) returned.current = true;
+  }, [editId]);
 
   if (editId != null) {
     return (
@@ -52,9 +59,19 @@ export function RecipesPage(props: RecipesPageProps) {
         recipeId={editId}
         offerUndo={props.offerUndo}
         dismissUndo={props.dismissUndo}
-        onDone={(message) => {
-          setNotice(message ?? '');
-          returned.current = true;
+        onDone={(saved) => {
+          let message = '';
+          if (saved) {
+            message = `Рецепт «${saved.name}» обновлён.`;
+            // Калькулятор открыт из этого рецепта и держит старую версию. «Обновить рецепт»
+            // в калькуляторе перезаписал бы правку, поэтому связь снимается.
+            if (current.recipeId === saved.id) {
+              dispatch({ type: 'unlinkRecipe' });
+              message +=
+                ' В калькуляторе осталась прежняя версия, она больше не связана с рецептом.';
+            }
+          }
+          setNotice(message);
           window.location.hash = '#/recipes';
         }}
       />
@@ -79,6 +96,9 @@ function RecipeList({
   focusTitle,
 }: RecipeListProps) {
   const titleRef = useRef<HTMLHeadingElement>(null);
+  // Область status появляется пустой, текст приходит следующим шагом: так его объявляют
+  // программы чтения с экрана.
+  const [shownNotice, setShownNotice] = useState('');
   const [recipes, setRecipes] = useState<Dish[] | null>(null);
   const [error, setError] = useState('');
   const [confirmOpen, setConfirmOpen] = useState<Dish | null>(null);
@@ -94,6 +114,10 @@ function RecipeList({
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  useEffect(() => {
+    setShownNotice(notice);
+  }, [notice]);
 
   useEffect(() => {
     // Возврат из правки происходит внутри раздела: App фокус не переводит.
@@ -118,6 +142,7 @@ function RecipeList({
 
   async function remove(recipe: Dish) {
     setError('');
+    setShownNotice('');
     try {
       const removed = await deleteRecipe(recipe.id);
       await reload();
@@ -134,6 +159,7 @@ function RecipeList({
 
   async function copy(recipe: Dish) {
     setError('');
+    setShownNotice('');
     try {
       await duplicateRecipe(recipe.id);
       await reload();
@@ -151,11 +177,9 @@ function RecipeList({
         Рецепт хранит ингредиенты с их значениями на момент сохранения. Правки справочника рецепт не
         меняют.
       </p>
-      {notice ? (
-        <p className="hint" role="status">
-          {notice}
-        </p>
-      ) : null}
+      <p className="hint" role="status">
+        {shownNotice}
+      </p>
       {error ? (
         <p className="warning" role="alert">
           {error}

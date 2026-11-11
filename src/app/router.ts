@@ -19,7 +19,14 @@ export function recipeEditHash(id: string): string {
 /** id рецепта из адреса экрана правки, иначе null. */
 export function recipeEditId(hash: string): string | null {
   if (!hash.startsWith(RECIPE_EDIT_PREFIX)) return null;
-  const id = decodeURIComponent(hash.slice(RECIPE_EDIT_PREFIX.length));
+  const raw = hash.slice(RECIPE_EDIT_PREFIX.length);
+  let id: string;
+  try {
+    id = decodeURIComponent(raw);
+  } catch {
+    // Испорченная ссылка (например, обрезанный %-код) не роняет приложение.
+    id = raw;
+  }
   return id === '' ? null : id;
 }
 
@@ -46,9 +53,5 @@ export function useHash(): string {
 
 /** Маршрут из hash-части адреса: GitHub Pages отдаёт только index.html. */
 export function useRoute(): Route {
-  return useSyncExternalStore(
-    subscribe,
-    () => routeFromHash(window.location.hash),
-    () => 'calculator',
-  );
+  return routeFromHash(useHash());
 }

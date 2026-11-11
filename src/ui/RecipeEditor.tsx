@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
-import { dishReducer, type DishState } from '../dish/state';
+import { dishContentKey, dishReducer, type DishState } from '../dish/state';
 import { useCatalogCommits } from '../dish/useCatalogCommits';
-import { getRecipe, recipeToState, saveRecipe } from '../storage/recipes';
+import { getRecipe, RecipeNotFoundError, recipeToState, updateRecipe } from '../storage/recipes';
 import { DishSummary } from './DishSummary';
 import { IngredientsEditor } from './IngredientsEditor';
 import { Modal } from './Modal';
@@ -11,8 +11,8 @@ export interface RecipeEditorProps {
   recipeId: string;
   offerUndo: (entry: UndoEntry) => void;
   dismissUndo: () => void;
-  /** Выход к списку рецептов. `message` — итог правки для списка. */
-  onDone: (message?: string) => void;
+  /** Выход к списку рецептов. `saved` — рецепт, если правку сохранили. */
+  onDone: (saved?: { id: string; name: string }) => void;
 }
 
 type Loaded = { status: 'loading' } | { status: 'missing' } | { status: 'ready'; state: DishState };
@@ -75,7 +75,8 @@ function RecipeForm({ initial, offerUndo, dismissUndo, onDone }: RecipeFormProps
   const [error, setError] = useState('');
   const [confirmLeave, setConfirmLeave] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const changed = state !== initial;
+  // Запись продукта в справочник меняет служебные поля строки, но это не правка пользователя.
+  const changed = dishContentKey(state) !== dishContentKey(initial);
 
   useCatalogCommits(state.rows, dispatch, true);
 
@@ -104,10 +105,14 @@ function RecipeForm({ initial, offerUndo, dismissUndo, onDone }: RecipeFormProps
     setSaving(true);
     setError('');
     try {
-      await saveRecipe(state);
-      onDone(`Рецепт «${state.name.trim() || 'Без названия'}» обновлён.`);
-    } catch {
-      setError('Не удалось сохранить рецепт.');
+      const saved = await updateRecipe(state);
+      onDone({ id: saved.id, name: saved.name });
+    } catch (e) {
+      setError(
+        e instanceof RecipeNotFoundError
+          ? 'Рецепт уже удалён, изменения не сохранены.'
+          : 'Не удалось сохранить рецепт.',
+      );
       setSaving(false);
     }
   }

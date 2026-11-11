@@ -122,6 +122,48 @@ describe('правка рецепта', () => {
     );
   });
 
+  it('калькулятор, открытый из рецепта, после правки теряет связь с рецептом', async () => {
+    const user = userEvent.setup();
+    window.location.hash = '#/recipes';
+    render(<App />);
+    await user.click(await screen.findByRole('button', { name: 'Открыть' }));
+    await screen.findByRole('button', { name: 'Обновить рецепт' });
+
+    window.location.hash = '#/recipes/edit/r1';
+    await screen.findByRole('heading', { name: 'Правка рецепта' });
+    const weight = screen.getByLabelText('Вес ингредиента 1, г');
+    await user.clear(weight);
+    await user.type(weight, '300');
+    await user.click(screen.getByRole('button', { name: 'Сохранить' }));
+    expect(await screen.findByText(/больше не связана с рецептом/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('link', { name: 'Калькулятор' }));
+    // Прежняя версия в калькуляторе сохранится новым рецептом и не затрёт правку.
+    expect(await screen.findByRole('button', { name: 'Сохранить в рецепты' })).toBeInTheDocument();
+    expect((await db.recipes.get('r1'))?.rows[0]?.weight).toBe('300');
+  });
+
+  it('рецепт удалили во время правки — новый рецепт не создаётся', async () => {
+    const user = await openEditor();
+    await db.recipes.delete('r1');
+    await user.click(screen.getByRole('button', { name: 'Сохранить' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Рецепт уже удалён');
+    expect(await db.recipes.count()).toBe(0);
+  });
+
+  it('«Назад» в браузере возвращает фокус на заголовок списка', async () => {
+    await openEditor();
+    window.location.hash = '#/recipes';
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Мои рецепты' })).toHaveFocus());
+  });
+
+  it('отмена без правок закрывает экран без вопроса', async () => {
+    const user = await openEditor();
+    await user.click(screen.getAllByRole('button', { name: 'Отмена' })[0]!);
+    await screen.findByRole('heading', { name: 'Мои рецепты' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('несуществующий рецепт — сообщение и ссылка на список', async () => {
     window.location.hash = '#/recipes/edit/nope';
     render(<App />);
