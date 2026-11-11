@@ -156,24 +156,26 @@ describe('калькулятор', () => {
   it('подсказки из Open Food Facts отмечены источником', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            products: [
-              {
-                code: '4601916007082',
-                product_name_ru: 'Гречка ядрица «Тест»',
-                nutriments: {
-                  'energy-kcal_100g': 351,
-                  proteins_100g: 12,
-                  fat_100g: 3.4,
-                  carbohydrates_100g: 64.2,
+      // Новый Response на каждый вызов: тело ответа читается один раз, а fetch зовут и проверка версии, и поиск.
+      vi.fn().mockImplementation(
+        async () =>
+          new Response(
+            JSON.stringify({
+              products: [
+                {
+                  code: '4601916007082',
+                  product_name_ru: 'Гречка ядрица «Тест»',
+                  nutriments: {
+                    'energy-kcal_100g': 351,
+                    proteins_100g: 12,
+                    fat_100g: 3.4,
+                    carbohydrates_100g: 64.2,
+                  },
                 },
-              },
-            ],
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        ),
+              ],
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
       ),
     );
     const user = await renderApp();

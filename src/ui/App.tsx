@@ -1,6 +1,7 @@
 import { useEffect, useRef, type MouseEvent } from 'react';
 import { ROUTES, useRoute, type Route } from '../app/router';
 import { SettingsProvider, useSettings } from '../app/settingsContext';
+import { UpdateProvider, useAppUpdate } from '../app/updateContext';
 import { applyTheme } from '../app/theme';
 import { useOnline } from '../app/useOnline';
 import { useDish } from '../dish/useDish';
@@ -20,6 +21,7 @@ function Shell() {
   const { settings, ready: settingsReady } = useSettings();
   const dish = useDish();
   const undo = useUndo();
+  const { updateAvailable } = useAppUpdate();
   const page = PAGES.includes(route) ? route : 'calculator';
 
   useEffect(() => applyTheme(settings.theme), [settings.theme]);
@@ -68,6 +70,14 @@ function Shell() {
           {ROUTES.filter((r) => PAGES.includes(r.route)).map((r) => (
             <a key={r.route} href={r.hash} aria-current={page === r.route ? 'page' : undefined}>
               {r.label}
+              {r.route === 'settings' && updateAvailable ? (
+                <>
+                  <span className="update-dot" aria-hidden="true">
+                    !
+                  </span>
+                  <span className="visually-hidden">, есть обновление</span>
+                </>
+              ) : null}
             </a>
           ))}
         </nav>
@@ -107,7 +117,9 @@ function Shell() {
 export function App() {
   return (
     <SettingsProvider>
-      <Shell />
+      <UpdateProvider>
+        <Shell />
+      </UpdateProvider>
     </SettingsProvider>
   );
 }

@@ -8,6 +8,10 @@
   --border: #c9d0ca;
   /* Рамка полей ввода: контраст не меньше 3:1 к фону (WCAG 1.4.11). */
   --border-input: #7a847d;
+  /* Оранжевый для «есть обновление»: белый текст на нём — 5,2:1. */
+  --update-bg: #c2410c;
+  --update-text: #ffffff;
+  --update-soft: #fff1e6;
   --accent: #2f7d4f;
   --accent-strong: #236140;
   --accent-contrast: #ffffff;
@@ -36,6 +40,9 @@
     --text-muted: #a7b1aa;
     --border: #3b443e;
     --border-input: #7d8880;
+    --update-bg: #fb923c;
+    --update-text: #1c1006;
+    --update-soft: #3a2414;
     --accent: #6cc493;
     --accent-strong: #8fd6ad;
     --accent-contrast: #0d1a12;
@@ -55,6 +62,9 @@
 :root[data-theme='dark'] {
   /* Набор токенов совпадает с блоком prefers-color-scheme выше: это проверяет styles.test.ts. */
   --border-input: #7d8880;
+  --update-bg: #fb923c;
+  --update-text: #1c1006;
+  --update-soft: #3a2414;
   color-scheme: dark;
   --chart-protein: #6cc493;
   --chart-fat: #f0b450;
@@ -964,6 +974,40 @@ h2 {
 .recipe-note {
   margin: 4px 0;
   white-space: pre-wrap;
+}
+
+/* Обновление приложения */
+
+.update-dot {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--update-bg);
+  color: var(--update-text);
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.button-update .update-dot {
+  margin: 0;
+  background: var(--update-text);
+  color: var(--update-bg);
+}
+
+.button-update {
+  background: var(--update-bg);
+  border-color: var(--update-bg);
+  color: var(--update-text);
+  font-weight: 700;
+}
+
+.update-card.is-available {
+  border: 2px solid var(--update-bg);
+  background: var(--update-soft);
 }
 
 /* Узкий экран: строки таблицы становятся карточками. */
