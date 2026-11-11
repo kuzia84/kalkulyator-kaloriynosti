@@ -57,6 +57,7 @@ export function IngredientsEditor({ state, dispatch, onRemoveRow }: IngredientsE
           initialName={searchRow.per100 ? '' : searchRow.name}
           submitLabel="Добавить в таблицу"
           existingLabel="Добавить в таблицу"
+          barcodeHint="Найдите продукт по коду. Продукт из справочника сразу встанет в строку, новый заполнит форму."
           onClose={() => setSearchRowId(null)}
           onAdded={(product) => pickIntoRow(searchRow.id, product)}
           onExisting={(product) => pickIntoRow(searchRow.id, product)}

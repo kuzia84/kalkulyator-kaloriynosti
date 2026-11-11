@@ -19,6 +19,8 @@ export interface AddProductDialogProps {
   submitLabel?: string;
   /** Подпись кнопки под найденным по штрихкоду продуктом, который уже есть в справочнике. */
   existingLabel?: string;
+  /** Подсказка в режиме «По штрихкоду»: что будет с найденным продуктом. */
+  barcodeHint?: string;
 }
 
 type Mode = 'manual' | 'barcode' | 'web';
@@ -49,6 +51,7 @@ export function AddProductDialog({
   onExisting,
   submitLabel = 'Добавить',
   existingLabel = 'Показать в справочнике',
+  barcodeHint = 'Найдите продукт по коду, и форма заполнится сама.',
 }: AddProductDialogProps) {
   const [mode, setMode] = useState<Mode>('manual');
   const [fill, setFill] = useState<{ id: number; values: Partial<ProductFormValue> }>();
@@ -138,7 +141,7 @@ export function AddProductDialog({
 
       {mode === 'barcode' ? (
         <BarcodeScanner
-          context="Найдите продукт по коду, и форма заполнится сама."
+          context={barcodeHint}
           pickLabel={(p) => (p.productId ? existingLabel : 'Заполнить форму')}
           onPick={(p) => void fillFrom(p)}
           onManual={fillBarcode}
