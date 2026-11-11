@@ -7,12 +7,17 @@ export default tseslint.config(
   { ignores: ['dist', 'dev-dist', 'coverage', 'playwright-report', 'test-results'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
-    files: ['**/*.{ts,tsx}'],
-    languageOptions: { ecmaVersion: 2022, globals: { ...globals.browser, ...globals.node } },
+    files: ['**/*.{ts,tsx,js}'],
+    languageOptions: { ecmaVersion: 2022, globals: globals.browser },
     plugins: { 'react-hooks': reactHooks },
     rules: {
       ...reactHooks.configs.recommended.rules,
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
+  },
+  {
+    // Конфиги и сквозные тесты работают в Node.
+    files: ['*.config.{ts,js}', 'e2e/**/*.ts'],
+    languageOptions: { globals: globals.node },
   },
 );

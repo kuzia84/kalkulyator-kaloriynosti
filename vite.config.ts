@@ -2,7 +2,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// base задаётся для GitHub Pages: сайт открывается по адресу /kalkulyator-kaloriynosti/
+// BASE_PATH задаёт workflow деплоя на GitHub Pages (/kalkulyator-kaloriynosti/).
+// Локальная сборка и тесты работают от корня.
 export default defineConfig({
   base: process.env.BASE_PATH ?? '/',
   plugins: [react()],

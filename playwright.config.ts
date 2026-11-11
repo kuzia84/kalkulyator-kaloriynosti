@@ -1,11 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const basePath = process.env.BASE_PATH ?? '/';
+
 export default defineConfig({
   testDir: './e2e',
-  workers: 2,
+  // Число воркеров задаёт скрипт `npm run e2e` (--workers).
   retries: process.env.CI ? 1 : 0,
   use: {
-    baseURL: 'http://localhost:4173',
+    baseURL: `http://localhost:4173${basePath}`,
     locale: 'ru-RU',
     trace: 'on-first-retry',
   },
@@ -14,7 +16,8 @@ export default defineConfig({
     { name: 'mobile', use: { ...devices['Pixel 7'] } },
   ],
   webServer: {
-    command: 'npm run build && npm run preview -- --port 4173 --strictPort',
+    // Типы проверяет отдельный шаг CI, здесь нужна только сборка.
+    command: 'npx vite build && npx vite preview --port 4173 --strictPort',
     port: 4173,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
