@@ -54,6 +54,9 @@ export function WebProductSearch({ initialQuery, onPick }: WebProductSearchProps
       });
     } catch {
       // Новый поиск или закрытие окна отменили этот запрос.
+      if (controller.signal.aborted) return;
+      // Другая ошибка (например, база недоступна): поиск не должен зависнуть.
+      setPhase({ kind: 'done', products: [], failed: sources });
     }
   }
 

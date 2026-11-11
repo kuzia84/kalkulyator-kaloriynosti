@@ -74,7 +74,7 @@ describe('страница модерации', () => {
     const details = screen.getByText('Как это проверяется?').closest('details')!;
     expect(details).toHaveAttribute('open');
     expect(details).toHaveTextContent('больше чем на 15 %');
-    expect(details).toHaveTextContent('больше чем на 5 ккал');
+    expect(details).toHaveTextContent('не меньше чем на 5 ккал');
   });
 
   it('сортировка списком работает без заголовков таблицы', async () => {
@@ -142,6 +142,10 @@ describe('страница модерации', () => {
     await user.click(
       await within(dialog).findByRole('button', { name: 'Заполнить форму: Творог 5 % «Тест»' }),
     );
+    // Заполнение ждёт проверки справочника: запись могли сохранить раньше.
+    await waitFor(() =>
+      expect(within(dialog).getByLabelText('Название')).toHaveValue('Творог 5 % «Тест»'),
+    );
     expect(within(dialog).getByRole('button', { name: 'Вручную' })).toHaveAttribute(
       'aria-pressed',
       'true',
@@ -185,7 +189,9 @@ describe('страница модерации', () => {
     await user.type(within(dialog).getByLabelText('Или введите цифры кода'), '4601916007082');
     await user.click(within(dialog).getByRole('button', { name: 'Найти' }));
     await user.click(await within(dialog).findByRole('button', { name: 'Заполнить форму' }));
-    expect(within(dialog).getByLabelText('Название')).toHaveValue('Творог 5 % «Тест»');
+    await waitFor(() =>
+      expect(within(dialog).getByLabelText('Название')).toHaveValue('Творог 5 % «Тест»'),
+    );
     expect(within(dialog).getByLabelText('Жиры, г')).toHaveValue('5');
   });
 
@@ -215,6 +221,47 @@ describe('страница модерации', () => {
     expect(screen.queryByRole('dialog', { name: 'Новый продукт' })).not.toBeInTheDocument();
     expect(screen.getByText(/«Картофель» уже есть в справочнике/)).toBeInTheDocument();
     expect(screen.getByLabelText('Поиск')).toHaveValue('Картофель');
+  });
+
+  it('пустой результат из-за фильтра не предлагает добавить продукт', async () => {
+    const user = await renderPage();
+    await user.selectOptions(screen.getByLabelText('Проверено'), 'Проверено');
+    await user.type(screen.getByLabelText('Поиск'), 'тыква');
+    expect(screen.getByText(/Найдено: 0 из/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Добавить «тыква»' })).not.toBeInTheDocument();
+  });
+
+  it('результат из сети, который уже в справочнике, показывает эту запись', async () => {
+    await db.products.update('sk-037', { externalId: 'off:4601916007082' });
+    const name = (await db.products.get('sk-037'))!.name;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () => offResponse({ products: [OFF_TVOROG] })),
+    );
+    const user = await renderPage();
+    await user.click(screen.getByRole('button', { name: 'Добавить продукт' }));
+    const dialog = screen.getByRole('dialog', { name: 'Новый продукт' });
+    await user.click(within(dialog).getByRole('button', { name: 'Найти в сети' }));
+    await user.type(within(dialog).getByLabelText('Название и производитель'), 'творог тест');
+    await user.click(within(dialog).getByRole('button', { name: 'Найти' }));
+    await user.click(
+      await within(dialog).findByRole('button', { name: 'Заполнить форму: Творог 5 % «Тест»' }),
+    );
+    expect(
+      await screen.findByText(`Продукт «${name}» уже есть в справочнике. Он показан в списке.`),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Новый продукт' })).not.toBeInTheDocument();
+  });
+
+  it('Tab в окне не уходит в скрытую форму', async () => {
+    const user = await renderPage();
+    await user.click(screen.getByRole('button', { name: 'Добавить продукт' }));
+    const dialog = screen.getByRole('dialog', { name: 'Новый продукт' });
+    await user.click(within(dialog).getByRole('button', { name: 'Найти в сети' }));
+    const find = within(dialog).getByRole('button', { name: 'Найти' });
+    find.focus();
+    await user.tab();
+    expect(within(dialog).getByRole('button', { name: 'Закрыть' })).toHaveFocus();
   });
 });
 

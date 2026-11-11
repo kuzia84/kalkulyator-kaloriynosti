@@ -35,11 +35,12 @@ export function Modal({ title, onClose, children }: ModalProps) {
         return;
       }
       if (e.key !== 'Tab' || !ref.current) return;
+      // Скрытый блок окна (атрибут hidden) фокус не получает и в обход не входит.
       const focusable = Array.from(
         ref.current.querySelectorAll<HTMLElement>(
           'input:not([disabled]), select, textarea, button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
         ),
-      );
+      ).filter((el) => !el.closest('[hidden]'));
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       if (!first || !last) return;

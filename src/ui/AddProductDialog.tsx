@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { addProduct } from '../catalog/moderation';
+import { useRef, useState } from 'react';
+import { addProduct, findByExternalId } from '../catalog/moderation';
 import type { Suggestion } from '../search/types';
 import { SOURCE_LABELS, type Product, type ProductSource } from '../storage/schema';
 import { BarcodeScanner } from './BarcodeDialog';
@@ -46,10 +46,18 @@ export function AddProductDialog({
   const [fill, setFill] = useState<{ id: number; values: Partial<ProductFormValue> }>();
   const [origin, setOrigin] = useState<Origin | null>(null);
   const [error, setError] = useState('');
+  // Сохранение идёт: повторное нажатие «Добавить» не создаёт вторую запись.
+  const saving = useRef(false);
 
-  function fillFrom(product: Suggestion) {
+  async function fillFrom(product: Suggestion) {
     if (product.productId) {
       onExisting(product.name);
+      return;
+    }
+    // Продукт из сети уже сохраняли: показать его запись, а не заполнять форму дубликатом.
+    const known = product.externalId ? await findByExternalId(product.externalId) : undefined;
+    if (known) {
+      onExisting(known.name);
       return;
     }
     setFill((f) => ({
@@ -77,10 +85,14 @@ export function AddProductDialog({
 
   function fillBarcode(barcode: string) {
     setFill((f) => ({ id: (f?.id ?? 0) + 1, values: { barcode } }));
+    // Код не найден: форма заполняется вручную, прежний источник к ней больше не относится.
+    setOrigin(null);
     setMode('manual');
   }
 
   async function submit(value: ProductFormValue) {
+    if (saving.current) return;
+    saving.current = true;
     setError('');
     try {
       const added = await addProduct({
@@ -92,6 +104,8 @@ export function AddProductDialog({
     } catch (e) {
       // Окно остаётся открытым: введённые значения не теряются.
       setError(e instanceof Error ? e.message : 'Продукт не добавлен.');
+    } finally {
+      saving.current = false;
     }
   }
 
@@ -115,12 +129,14 @@ export function AddProductDialog({
         <BarcodeScanner
           context="Найдите продукт по коду, и форма заполнится сама."
           pickLabel={(p) => (p.productId ? 'Показать в справочнике' : 'Заполнить форму')}
-          onPick={fillFrom}
+          onPick={(p) => void fillFrom(p)}
           onManual={fillBarcode}
         />
       ) : null}
 
-      {mode === 'web' ? <WebProductSearch initialQuery={initialName} onPick={fillFrom} /> : null}
+      {mode === 'web' ? (
+        <WebProductSearch initialQuery={initialName} onPick={(p) => void fillFrom(p)} />
+      ) : null}
 
       {/* Форма остаётся в DOM в других режимах: введённые значения не теряются. */}
       <div hidden={mode !== 'manual'}>

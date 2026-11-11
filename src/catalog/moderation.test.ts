@@ -203,4 +203,14 @@ describe('модерация', () => {
     // Тот же продукт из поиска в блюде попадает в эту запись, а не в новую.
     expect(await commitUsage(input, db)).toBe(p.id);
   });
+
+  it('штрихкод в другой записи (UPC-A и EAN-13) считается занятым', async () => {
+    await updateProduct('sk-014', { barcode: '0036000291452' }, db);
+    await expect(
+      addProduct(
+        { name: 'Кефир', kcal: 51, protein: 2.8, fat: 3.2, carbs: 4.1, barcode: '036000291452' },
+        db,
+      ),
+    ).rejects.toThrow(/уже есть у «Картофель»/);
+  });
 });

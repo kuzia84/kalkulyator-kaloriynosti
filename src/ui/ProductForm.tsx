@@ -211,8 +211,8 @@ export function ProductForm({
         <p className="warning" role="status">
           Калорийность не сходится с БЖУ. По БЖУ получается{' '}
           {formatNutrient('kcal', atwaterKcal(parsed as Nutrients))} ккал (белки и углеводы — по 4
-          ккал на грамм, жиры — 9). Разница больше {Math.round(SUSPICIOUS_THRESHOLD * 100)} % и
-          больше {SUSPICIOUS_MIN_KCAL_DIFF} ккал. Проверьте значения.
+          ккал на грамм, жиры — 9). Разница больше {Math.round(SUSPICIOUS_THRESHOLD * 100)} % и не
+          меньше {SUSPICIOUS_MIN_KCAL_DIFF} ккал. Проверьте значения.
         </p>
       ) : null}
       <div className="form-actions">

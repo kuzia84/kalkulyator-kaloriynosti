@@ -3,6 +3,7 @@ import {
   atwaterKcal,
   formatNutrient,
   isSuspicious,
+  kcalDeviation,
   NUTRIENT_KEYS,
   SUSPICIOUS_MIN_KCAL_DIFF,
   SUSPICIOUS_THRESHOLD,
@@ -84,10 +85,11 @@ type Dialog =
 
 /** Насколько заявленная калорийность выше или ниже расчётной по БЖУ: «+23 %», «−40 %». */
 function deviationLabel(p: Product): string {
-  const expected = atwaterKcal(p);
-  if (expected === 0) return 'нет БЖУ, есть ккал';
-  const percent = Math.round((Math.abs(p.kcal - expected) / expected) * 100);
-  return `${p.kcal > expected ? '+' : '−'}${percent} %`;
+  const deviation = kcalDeviation(p);
+  if (!Number.isFinite(deviation)) return 'нет БЖУ, есть ккал';
+  // Вверх: отмеченная запись с отклонением 15,2 % не должна показывать «15 %».
+  const percent = Math.ceil(deviation * 100 - 1e-9);
+  return `${p.kcal > atwaterKcal(p) ? '+' : '−'}${percent} %`;
 }
 
 function TrashIcon() {
@@ -217,7 +219,7 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
     await reload();
     offerUndo({
       message: `Продукт «${added.name}» добавлен.`,
-      undo: () => void run(() => db.products.delete(added.id)),
+      undo: () => void run(async () => void (await deleteProduct(added.id))),
     });
   }
 
@@ -240,6 +242,9 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
   }
 
   const sortValue = `${sort.key}:${sort.dir}`;
+  // «Такого продукта нет» верно, только если результат сузил один поиск, а не другие фильтры.
+  const onlyQueryFilter =
+    filter.source === 'all' && filter.verified === 'all' && !filter.suspiciousOnly;
 
   return (
     <section aria-labelledby="mod-title" className="catalog">
@@ -336,9 +341,9 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
             </p>
             <p>
               Запись получает отметку, если указанная калорийность отличается от расчётной больше
-              чем на {THRESHOLD_PERCENT} % и больше чем на {SUSPICIOUS_MIN_KCAL_DIFF} ккал. Второе
-              условие нужно для малокалорийных продуктов: у чая или зелени даже 2 ккал разницы дают
-              большой процент.
+              чем на {THRESHOLD_PERCENT} % и не меньше чем на {SUSPICIOUS_MIN_KCAL_DIFF} ккал.
+              Второе условие нужно для малокалорийных продуктов: у чая или зелени даже 2 ккал
+              разницы дают большой процент.
             </p>
             <p>
               Частые причины: опечатка, значения не на 100 г, перепутаны белки и жиры. У продуктов с
@@ -373,7 +378,7 @@ export function ModerationPage({ offerUndo }: ModerationPageProps) {
           <p className="hint" role="status">
             Найдено: {visible.length} из {products.length}.
           </p>
-          {visible.length === 0 && filter.query.trim() !== '' ? (
+          {visible.length === 0 && onlyQueryFilter && filter.query.trim() !== '' ? (
             <div className="empty-state">
               <p>Такого продукта в справочнике нет.</p>
               <button type="button" className="button" onClick={openAdd}>

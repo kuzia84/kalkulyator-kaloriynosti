@@ -2,6 +2,7 @@ import { isSuspicious } from '../calc';
 import { db as defaultDb, forgetDeletedSeed, rememberDeletedSeed, type AppDB } from '../storage/db';
 import type { Product, ProductSource } from '../storage/schema';
 import { makeProduct, validateProduct } from './catalog';
+import { barcodeVariants } from '../barcode/gtin';
 import { normalizeBarcode, normalizeName } from './normalize';
 
 export interface ProductPatch {
@@ -63,11 +64,14 @@ export async function updateProduct(
   });
 }
 
-/** Отклоняет штрихкод, который уже есть у другой записи справочника. */
+/**
+ * Отклоняет штрихкод, который уже есть у другой записи справочника.
+ * Сравниваются все записи одного кода: UPC-A и EAN-13, с ведущими нулями и без.
+ */
 async function assertBarcodeFree(code: string, exceptId: string | null, db: AppDB): Promise<void> {
   const owner = await db.products
     .where('barcode')
-    .equals(code)
+    .anyOf(barcodeVariants(code))
     .filter((p) => p.id !== exceptId)
     .first();
   if (owner) {
@@ -75,6 +79,17 @@ async function assertBarcodeFree(code: string, exceptId: string | null, db: AppD
       `Штрихкод ${code} уже есть у «${owner.name}». Измените эту запись или удалите лишнюю.`,
     );
   }
+}
+
+/** Запись справочника с этим внешним id: своим или псевдонимом после старого объединения. */
+export async function findByExternalId(
+  externalId: string,
+  db: AppDB = defaultDb,
+): Promise<Product | undefined> {
+  return (
+    (await db.products.where('externalId').equals(externalId).first()) ??
+    (await db.products.where('aliases').equals(externalId).first())
+  );
 }
 
 export interface ManualProduct {
@@ -107,9 +122,7 @@ export async function addProduct(
       editedAt: now,
     };
     if (product.externalId) {
-      const owner =
-        (await db.products.where('externalId').equals(product.externalId).first()) ??
-        (await db.products.where('aliases').equals(product.externalId).first());
+      const owner = await findByExternalId(product.externalId, db);
       if (owner) throw new ModerationError(`Этот продукт уже есть в справочнике: «${owner.name}».`);
     }
     if (product.barcode) await assertBarcodeFree(product.barcode, null, db);
