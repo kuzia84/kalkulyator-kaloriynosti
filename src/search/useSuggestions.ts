@@ -60,8 +60,14 @@ export function useSuggestions(
   );
 
   useEffect(() => {
-    if (!enabled || query.trim() === '') {
+    if (query.trim() === '') {
       setState({ items: [], loading: false });
+      return;
+    }
+    // Список закрыт (Escape, уход фокуса): прежние подсказки остаются, чтобы стрелка вниз
+    // сразу открыла их и Enter выбрал первый пункт.
+    if (!enabled) {
+      setState((s) => (s.loading ? { ...s, loading: false } : s));
       return;
     }
     const controller = new AbortController();

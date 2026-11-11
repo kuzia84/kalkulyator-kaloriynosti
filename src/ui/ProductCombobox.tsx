@@ -50,9 +50,21 @@ export function ProductCombobox(props: ProductComboboxProps) {
     onOpenChange?.(expanded);
   }, [expanded, onOpenChange]);
 
-  // Новый список — активного пункта нет, чтобы Enter не выбрал случайный продукт.
+  // Новый текст — активного пункта нет, чтобы Enter не выбрал случайный продукт.
   useEffect(() => {
     setActive(-1);
+  }, [value]);
+
+  // Список обновился (пришли ответы из сети): активный пункт остаётся в пределах списка.
+  // Если стрелкой открыли ещё пустой список, первым активным становится первый продукт.
+  const pendingFirst = useRef(false);
+  useEffect(() => {
+    if (pendingFirst.current && items.length > 0) {
+      pendingFirst.current = false;
+      setActive(0);
+      return;
+    }
+    setActive((i) => (i >= items.length + 1 ? -1 : i));
   }, [items]);
 
   useEffect(() => {
@@ -80,6 +92,7 @@ export function ProductCombobox(props: ProductComboboxProps) {
         if (!open) {
           // Список ещё не загружен: активного пункта нет, иначе Enter выбрал бы ручной ввод.
           setOpen(true);
+          pendingFirst.current = items.length === 0;
           setActive(items.length > 0 ? 0 : -1);
         } else {
           setActive((i) => (i + 1) % optionCount);
