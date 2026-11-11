@@ -37,6 +37,7 @@ export type DishAction =
   | { type: 'setPortionWeight'; value: string }
   | { type: 'setDishName'; value: string }
   | { type: 'setNote'; value: string }
+  | { type: 'setRecipeId'; value: string }
   | { type: 'replace'; state: DishState };
 
 /** Действие выбора продукта. `pickId` отличает этот выбор от следующих в той же строке. */
@@ -122,6 +123,8 @@ export function dishReducer(state: DishState, action: DishAction): DishState {
       return { ...state, name: action.value };
     case 'setNote':
       return { ...state, note: action.value };
+    case 'setRecipeId':
+      return { ...state, recipeId: action.value };
     case 'replace':
       return action.state;
   }

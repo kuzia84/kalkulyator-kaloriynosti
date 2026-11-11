@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { downloadText } from '../lib/download';
+import { BackupError, exportBackup, importBackup } from '../storage/backup';
 import { useSettings } from '../app/settingsContext';
 import type { ExternalSource, Theme } from '../storage/schema';
 import { SUGGESTIONS_MAX, SUGGESTIONS_MIN } from '../storage/settings';
@@ -25,6 +27,33 @@ export function SettingsPage() {
   const [showKey, setShowKey] = useState(false);
   const [keyDraft, setKeyDraft] = useState(settings.usdaApiKey);
   const [limitDraft, setLimitDraft] = useState(String(settings.suggestionsLimit));
+  const [dataMessage, setDataMessage] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  async function exportFile() {
+    try {
+      const backup = await exportBackup();
+      const date = backup.exportedAt.slice(0, 10);
+      downloadText(`калькулятор-${date}.json`, JSON.stringify(backup, null, 2), 'application/json');
+      setDataMessage(
+        `Сохранено: продуктов — ${backup.products.length}, рецептов — ${backup.recipes.length}.`,
+      );
+    } catch {
+      setDataMessage('Не удалось собрать файл.');
+    }
+  }
+
+  async function importFile(file: File | undefined) {
+    if (!file) return;
+    try {
+      const result = await importBackup(await file.text());
+      setDataMessage(
+        `Загружено: продуктов — ${result.products}, рецептов — ${result.recipes}. Пропущено: ${result.skipped}.`,
+      );
+    } catch (e) {
+      setDataMessage(e instanceof BackupError ? e.message : 'Не удалось прочитать файл.');
+    }
+  }
 
   // Число применяется после ухода из поля: иначе при вводе «20» первая «2» сразу стала бы 5.
   function commitLimit() {
@@ -163,6 +192,39 @@ export function SettingsPage() {
             . Ключ не уходит никуда, кроме запросов к USDA.
           </span>
         </form>
+      </fieldset>
+
+      <fieldset className="card">
+        <legend>Перенос данных</legend>
+        <p className="hint">
+          Данные хранятся только в этом браузере. Чтобы перенести справочник и рецепты на другое
+          устройство, сохраните файл и загрузите его там. Настройки и ключ USDA в файл не входят.
+          При загрузке ничего не удаляется: более новые рецепты и проверенные продукты на устройстве
+          остаются.
+        </p>
+        <div className="form-actions form-actions-start">
+          <button type="button" className="button" onClick={() => void exportFile()}>
+            Сохранить в файл
+          </button>
+          <button type="button" className="button" onClick={() => fileInput.current?.click()}>
+            Загрузить из файла
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(e) => {
+              void importFile(e.target.files?.[0]);
+              e.target.value = '';
+            }}
+          />
+        </div>
+        {dataMessage ? (
+          <p className="hint" role="status">
+            {dataMessage}
+          </p>
+        ) : null}
       </fieldset>
 
       <fieldset className="card">
