@@ -90,6 +90,44 @@ describe('облако в настройках', () => {
     expect(screen.getByText(/В облаке: копия от 12\.11\.2026/)).toBeInTheDocument();
   });
 
+  it('выгрузка поверх чужой копии спрашивает, после загрузки — не спрашивает', async () => {
+    await addRecipe('Местный', 1000);
+    const cloudJson = JSON.stringify(await exportBackup());
+    saveSession('google', { token: 'tok', expiresAt: null, account: 'me@gmail.com' });
+    let modified = '2026-11-10T08:00:00.000Z';
+    let writes = 0;
+    mockCloud((url) => {
+      if (url.includes('/upload/drive/v3/files/f1')) {
+        writes += 1;
+        modified = `2026-11-12T10:0${writes}:00.000Z`;
+        return json({ id: 'f1', modifiedTime: modified });
+      }
+      if (url.includes('/files/f1?alt=media')) return new Response(cloudJson);
+      if (url.includes('/drive/v3/files?')) {
+        return json({ files: [{ id: 'f1', modifiedTime: modified }] });
+      }
+      return undefined;
+    });
+    const user = userEvent.setup();
+    openSettings();
+
+    await user.click(await screen.findByRole('button', { name: 'Выгрузить в облако' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Записать поверх копии в облаке?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Отмена' }));
+    expect(writes).toBe(0);
+
+    // Загрузка запоминает копию: следующая выгрузка идёт без вопроса.
+    await user.click(screen.getByRole('button', { name: 'Загрузить из облака' }));
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Объединить' }),
+    );
+    await screen.findByText(/Загружено из сервиса «Google Диск»/);
+    await user.click(screen.getByRole('button', { name: 'Выгрузить в облако' }));
+    await screen.findByText(/Выгружено в сервис «Google Диск»/);
+    expect(writes).toBe(1);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it('загрузка при своих рецептах спрашивает, «Заменить» оставляет рецепты облака', async () => {
     await addRecipe('Из облака', 1000);
     const cloudJson = JSON.stringify(await exportBackup());

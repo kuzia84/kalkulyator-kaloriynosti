@@ -1,4 +1,4 @@
-import { GOOGLE_AUTH_URL, GOOGLE_SCOPE } from './google';
+import { GOOGLE_AUTH_URL, GOOGLE_DRIVE_SCOPE, GOOGLE_SCOPE } from './google';
 import type { CloudProviderId } from './types';
 import { YANDEX_AUTH_URL } from './yandex';
 
@@ -21,6 +21,11 @@ export interface CloudSession {
   expiresAt: number | null;
   /** Почта или логин. Пусто, пока приложение не спросило у сервиса. */
   account: string;
+  /**
+   * Время записи копии в облаке, которую это устройство последний раз выгрузило или загрузило.
+   * Другое время у копии в облаке — копию записало другое устройство.
+   */
+  syncedAt?: string;
 }
 
 type Sessions = Partial<Record<CloudProviderId, CloudSession>>;
@@ -140,6 +145,11 @@ const ERROR_TEXT: Record<string, string> = {
   access_denied: 'Вход отменён: доступ к облаку не выдан.',
 };
 
+/** Google перечисляет выданные права в `scope`. Нет параметра — права выданы как запрошены. */
+function hasDriveScope(scope: string | null): boolean {
+  return scope == null || scope.split(/\s+/).includes(GOOGLE_DRIVE_SCOPE);
+}
+
 let lastOutcome: RedirectOutcome | null = null;
 
 /**
@@ -171,6 +181,20 @@ export function completeRedirect(now = Date.now()): RedirectOutcome | null {
       ok: false,
       provider: pending.provider,
       message: ERROR_TEXT[code] ?? `Сервис отказал во входе (${code}).`,
+    };
+  } else if (!params.get('access_token')) {
+    outcome = {
+      ok: false,
+      provider: pending.provider,
+      message: 'Сервис не выдал доступ. Войдите ещё раз.',
+    };
+  } else if (pending.provider === 'google' && !hasDriveScope(params.get('scope'))) {
+    // На экране согласия Google можно снять галочку доступа к Диску и оставить только почту.
+    outcome = {
+      ok: false,
+      provider: 'google',
+      message:
+        'Доступ к Google Диску не выдан. Войдите снова и отметьте доступ к файлам Google Диска.',
     };
   } else {
     const token = params.get('access_token') ?? '';

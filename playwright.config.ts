@@ -21,7 +21,8 @@ export default defineConfig({
     // Типы проверяет отдельный шаг CI, здесь нужна только сборка.
     command: 'npx vite build && npx vite preview --port 4173 --strictPort',
     port: 4173,
-    reuseExistingServer: !process.env.CI,
+    // Чужой сервер на 4173 собран без пробных client ID: e2e облака на нём упали бы без дефекта.
+    reuseExistingServer: false,
     timeout: 180_000,
     // Пробные client ID показывают кнопки входа. Страницы входа и API облака подменяет e2e/cloud.spec.ts.
     env: {

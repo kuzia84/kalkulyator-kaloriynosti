@@ -162,6 +162,17 @@ async function findSameProduct(db: AppDB, p: Product): Promise<Product | undefin
     .first();
 }
 
+/** Сколько рецептов файла пройдут проверку при загрузке. Чужой или битый файл — 0. */
+export function countBackupRecipes(json: string): number {
+  try {
+    const data: unknown = JSON.parse(json);
+    if (!isObject(data) || data.format !== BACKUP_FORMAT || !Array.isArray(data.recipes)) return 0;
+    return data.recipes.filter((r) => readRecipe(r) != null).length;
+  } catch {
+    return 0;
+  }
+}
+
 export type ImportMode = 'merge' | 'replace';
 
 export interface ImportOptions {
@@ -206,6 +217,9 @@ export async function importBackup(
   const rawRecipes = Array.isArray(data.recipes) ? data.recipes : [];
   const products = rawProducts.map(readProduct);
   const recipes = rawRecipes.map(readRecipe);
+  if (mode === 'replace' && !recipes.some(Boolean)) {
+    throw new BackupError('В копии нет рецептов. Рецепты устройства не тронуты.');
+  }
   let skipped =
     products.filter((p) => !p).length + recipes.reduce((n, r) => n + (r ? r.droppedRows : 1), 0);
   const result: ImportResult = { products: 0, recipes: 0, skipped: 0 };

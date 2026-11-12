@@ -55,7 +55,8 @@ export const yandex: CloudProvider = {
   async upload(token, json) {
     const target = await link(token, 'upload', { overwrite: 'true' });
     if (!target) throw new CloudError('Яндекс Диск не выдал ссылку для записи. Повторите позже.');
-    // Без заголовков: тело-строка уходит как text/plain и не требует предварительного запроса CORS.
+    // Ссылка уже содержит доступ: токен на чужой хост не уходит. PUT всё равно требует
+    // предварительного запроса CORS (OPTIONS). Ответ на него проверяет ручная проверка из README.
     await cloudFetch(LABEL, target.href, { method: target.method ?? 'PUT', body: json });
     // Диск может обработать файл не сразу: тогда берётся время устройства.
     return (await yandex.stat(token)) ?? new Date().toISOString();

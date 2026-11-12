@@ -8,7 +8,8 @@ const USERINFO = 'https://www.googleapis.com/oauth2/v3/userinfo';
 
 export const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 /** `drive.file` открывает приложению только файлы, которые оно создало само. */
-export const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/drive.file email';
+export const GOOGLE_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+export const GOOGLE_SCOPE = `${GOOGLE_DRIVE_SCOPE} email`;
 
 interface DriveFile {
   id: string;

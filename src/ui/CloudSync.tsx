@@ -16,7 +16,13 @@ import {
   type CloudProvider,
   type CloudProviderId,
 } from '../cloud/types';
-import { BackupError, exportBackup, importBackup, type ImportMode } from '../storage/backup';
+import {
+  BackupError,
+  countBackupRecipes,
+  exportBackup,
+  importBackup,
+  type ImportMode,
+} from '../storage/backup';
 import { db } from '../storage/db';
 import { Modal } from './Modal';
 import { ChevronIcon } from './icons';
@@ -32,25 +38,25 @@ function formatDate(iso: string): string {
 /** Что известно о копии в облаке: `undefined` — ещё не спрашивали, `null` — копии нет. */
 type CopyDates = Partial<Record<CloudProviderId, string | null>>;
 
-interface Confirm {
-  provider: CloudProvider;
-  file: CloudFile;
-  cloudRecipes: number;
-  localRecipes: number;
-}
-
-function countRecipes(json: string): number {
-  try {
-    const data = JSON.parse(json) as { recipes?: unknown };
-    return Array.isArray(data.recipes) ? data.recipes.length : 0;
-  } catch {
-    return 0;
-  }
-}
+type Confirm =
+  | {
+      kind: 'download';
+      provider: CloudProvider;
+      file: CloudFile;
+      cloudRecipes: number;
+      localRecipes: number;
+    }
+  | { kind: 'upload'; provider: CloudProvider; session: CloudSession; cloudDate: string };
 
 function activeSession(id: CloudProviderId): CloudSession | null {
   const s = getSession(id);
   return s && !isExpired(s) ? s : null;
+}
+
+/** Запоминает, какую копию в облаке это устройство видело последней. */
+function markSynced(id: CloudProviderId, syncedAt: string) {
+  const s = getSession(id);
+  if (s) saveSession(id, { ...s, syncedAt });
 }
 
 export interface CloudSyncProps {
@@ -62,13 +68,16 @@ export interface CloudSyncProps {
 export function CloudSync({ onMessage }: CloudSyncProps) {
   const providers = configuredProviders();
   const online = useOnline();
-  // Счётчик перечитывает вход из localStorage после входа, выхода и истечения токена.
+  // `version` перезапускает запросы к облаку: после выхода и истечения токена.
   const [version, setVersion] = useState(0);
+  // `tick` только перерисовывает строки: вход хранится в localStorage, а не в состоянии.
+  const [, setTick] = useState(0);
   const [dates, setDates] = useState<CopyDates>({});
   const [busy, setBusy] = useState<CloudProviderId | null>(null);
   const [confirm, setConfirm] = useState<Confirm | null>(null);
 
   const refresh = () => setVersion((v) => v + 1);
+  const rerender = () => setTick((t) => t + 1);
 
   useEffect(() => {
     const outcome = takeRedirectOutcome();
@@ -108,10 +117,10 @@ export function CloudSync({ onMessage }: CloudSyncProps) {
           if (!s.account) {
             const account = await provider.whoami(s.token);
             if (cancelled) return;
-            // Пустой ответ не сохраняется: иначе запрос почты повторялся бы без конца.
+            // Пустой ответ не сохраняется. Запросы не перезапускаются: строка только перерисуется.
             if (account) {
-              saveSession(provider.id, { ...s, account });
-              refresh();
+              saveSession(provider.id, { ...(getSession(provider.id) ?? s), account });
+              rerender();
             }
           }
           const date = await provider.stat(s.token);
@@ -124,17 +133,31 @@ export function CloudSync({ onMessage }: CloudSyncProps) {
     return () => {
       cancelled = true;
     };
-    // Перезапуск — при смене сети и после входа или выхода.
+    // Перезапуск — при смене сети, после выхода и истечения токена.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [online, version]);
 
   if (providers.length === 0) return null;
 
-  async function upload(provider: CloudProvider, s: CloudSession) {
+  /**
+   * Выгрузка пишет поверх копии в облаке. Если копию записало другое устройство,
+   * сначала спросить: иначе его рецепты пропадут из облака без предупреждения.
+   */
+  async function upload(provider: CloudProvider, s: CloudSession, force = false) {
+    setConfirm(null);
     setBusy(provider.id);
     try {
+      if (!force) {
+        const cloudDate = await provider.stat(s.token);
+        setDates((d) => ({ ...d, [provider.id]: cloudDate }));
+        if (cloudDate && cloudDate !== s.syncedAt) {
+          setConfirm({ kind: 'upload', provider, session: s, cloudDate });
+          return;
+        }
+      }
       const backup = await exportBackup();
       const modifiedAt = await provider.upload(s.token, JSON.stringify(backup));
+      markSynced(provider.id, modifiedAt);
       setDates((d) => ({ ...d, [provider.id]: modifiedAt }));
       onMessage(
         `Выгружено в сервис «${provider.label}»: продуктов — ${backup.products.length}, рецептов — ${backup.recipes.length}.`,
@@ -148,14 +171,18 @@ export function CloudSync({ onMessage }: CloudSyncProps) {
 
   async function apply(provider: CloudProvider, file: CloudFile, mode: ImportMode) {
     setConfirm(null);
+    setBusy(provider.id);
     try {
       const result = await importBackup(file.json, db, { mode });
+      markSynced(provider.id, file.modifiedAt);
       const action = mode === 'replace' ? 'Рецепты заменены' : 'Загружено';
       onMessage(
         `${action} из сервиса «${provider.label}»: продуктов — ${result.products}, рецептов — ${result.recipes}. Пропущено: ${result.skipped}.`,
       );
     } catch (e) {
       fail(provider, e);
+    } finally {
+      setBusy(null);
     }
   }
 
@@ -175,7 +202,13 @@ export function CloudSync({ onMessage }: CloudSyncProps) {
         await apply(provider, file, 'merge');
         return;
       }
-      setConfirm({ provider, file, cloudRecipes: countRecipes(file.json), localRecipes });
+      setConfirm({
+        kind: 'download',
+        provider,
+        file,
+        cloudRecipes: countBackupRecipes(file.json),
+        localRecipes,
+      });
     } catch (e) {
       fail(provider, e);
     } finally {
@@ -202,7 +235,7 @@ export function CloudSync({ onMessage }: CloudSyncProps) {
       <div className="group-list">
         {providers.map((provider) => {
           const stored = getSession(provider.id);
-          const s = activeSession(provider.id);
+          const s = stored && !isExpired(stored) ? stored : null;
           if (!s) {
             return (
               <button
@@ -275,7 +308,7 @@ export function CloudSync({ onMessage }: CloudSyncProps) {
         })}
       </div>
 
-      {confirm ? (
+      {confirm?.kind === 'download' ? (
         <Modal title="Загрузить рецепты из облака?" onClose={() => setConfirm(null)}>
           <p>
             В облаке — {recipesCount(confirm.cloudRecipes)}, копия от{' '}
@@ -294,6 +327,7 @@ export function CloudSync({ onMessage }: CloudSyncProps) {
             <button
               type="button"
               className="button button-danger"
+              disabled={confirm.cloudRecipes === 0}
               onClick={() => void apply(confirm.provider, confirm.file, 'replace')}
             >
               Заменить
@@ -304,6 +338,31 @@ export function CloudSync({ onMessage }: CloudSyncProps) {
               onClick={() => void apply(confirm.provider, confirm.file, 'merge')}
             >
               Объединить
+            </button>
+          </div>
+        </Modal>
+      ) : null}
+
+      {confirm?.kind === 'upload' ? (
+        <Modal title="Записать поверх копии в облаке?" onClose={() => setConfirm(null)}>
+          <p>
+            Копию от {formatDate(confirm.cloudDate)} записало другое устройство или это устройство
+            её ещё не загружало. Выгрузка заменит её данными этого устройства.
+          </p>
+          <p>
+            Чтобы не потерять рецепты из облака, сначала нажмите «Загрузить из облака» и выберите
+            «Объединить», потом выгрузите.
+          </p>
+          <div className="form-actions">
+            <button type="button" className="button" onClick={() => setConfirm(null)}>
+              Отмена
+            </button>
+            <button
+              type="button"
+              className="button button-danger"
+              onClick={() => void upload(confirm.provider, confirm.session, true)}
+            >
+              Записать поверх
             </button>
           </div>
         </Modal>

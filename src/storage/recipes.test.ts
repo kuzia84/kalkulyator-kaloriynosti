@@ -3,7 +3,7 @@ import { dishToCsv } from '../dish/csv';
 import { dishReducer, initialDishState, pickAction, type DishState } from '../dish/state';
 import { resetDb } from '../test/db';
 import { db } from './db';
-import { BackupError, exportBackup, importBackup } from './backup';
+import { BackupError, countBackupRecipes, exportBackup, importBackup } from './backup';
 import { deleteRecipe, listRecipes, recipeToState, restoreRecipe, saveRecipe } from './recipes';
 
 beforeEach(resetDb);
@@ -151,6 +151,27 @@ describe('экспорт и импорт JSON', () => {
     await saveRecipe({ ...sampleDish(), recipeId: id, name: 'Новое' }, db, 9000);
     await importBackup(json, db, { mode: 'replace' });
     expect((await listRecipes()).map((r) => r.name)).toEqual(['Старое']);
+  });
+
+  it('режим «заменить» без годных рецептов в файле ничего не удаляет', async () => {
+    await saveRecipe(sampleDish());
+    const json = JSON.stringify({
+      format: 'kalkulyator-kaloriynosti',
+      version: 1,
+      products: [],
+      recipes: [{ id: 'bad' }],
+    });
+    expect(countBackupRecipes(json)).toBe(0);
+    await expect(importBackup(json, db, { mode: 'replace' })).rejects.toThrow('нет рецептов');
+    expect(await listRecipes()).toHaveLength(1);
+  });
+
+  it('число рецептов в файле — только годные', async () => {
+    await saveRecipe(sampleDish());
+    const backup = await exportBackup();
+    const json = JSON.stringify({ ...backup, recipes: [...backup.recipes, { id: 'bad' }] });
+    expect(countBackupRecipes(json)).toBe(1);
+    expect(countBackupRecipes('не json')).toBe(0);
   });
 
   it('режим «заменить» с битым файлом ничего не удаляет', async () => {

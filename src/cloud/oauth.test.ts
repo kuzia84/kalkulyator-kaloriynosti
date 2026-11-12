@@ -93,6 +93,30 @@ describe('возврат со страницы входа', () => {
     });
   });
 
+  it('пустой токен — не вход', () => {
+    const state = login('yandex');
+    window.location.hash = `#access_token=&state=${state}`;
+    expect(completeRedirect()).toMatchObject({ ok: false, provider: 'yandex' });
+    expect(getSession('yandex')).toBeNull();
+  });
+
+  it('Google без доступа к Диску — не вход', () => {
+    const state = login('google');
+    window.location.hash = `#access_token=t&state=${state}&scope=email%20openid`;
+    expect(completeRedirect()).toMatchObject({
+      ok: false,
+      message: expect.stringContaining('Доступ к Google Диску не выдан'),
+    });
+    expect(getSession('google')).toBeNull();
+  });
+
+  it('Google с доступом к Диску среди прочих прав — вход', () => {
+    const state = login('google');
+    const scope = encodeURIComponent('email https://www.googleapis.com/auth/drive.file openid');
+    window.location.hash = `#access_token=t&state=${state}&scope=${scope}`;
+    expect(completeRedirect()).toEqual({ ok: true, provider: 'google' });
+  });
+
   it('повторный возврат с тем же state не проходит', () => {
     const state = login('google');
     window.location.hash = `#state=${state}&access_token=a`;
