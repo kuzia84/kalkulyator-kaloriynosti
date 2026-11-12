@@ -6,16 +6,24 @@ import { DishSummary } from './DishSummary';
 export interface DishExtrasProps {
   state: DishState;
   dispatch: (action: DishAction) => void;
+  saving: boolean;
+  /** «Сохранить как новый рецепт»: видна, только если блюдо открыто из рецепта. */
+  onSaveAsNew: () => void;
 }
 
 /** Блоки рядом с таблицей калькулятора: итоги, порция, название и заметка, экспорт. */
-export function DishExtras({ state, dispatch }: DishExtrasProps) {
+export function DishExtras({ state, dispatch, saving, onSaveAsNew }: DishExtrasProps) {
   return (
     <DishSummary
       state={state}
       dispatch={dispatch}
       actions={
         <div className="form-actions form-actions-start no-print">
+          {state.recipeId ? (
+            <button type="button" className="button" disabled={saving} onClick={onSaveAsNew}>
+              Сохранить как новый рецепт
+            </button>
+          ) : null}
           <button
             type="button"
             className="button"

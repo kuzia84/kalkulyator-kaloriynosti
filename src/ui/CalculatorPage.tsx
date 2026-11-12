@@ -22,13 +22,24 @@ export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageP
   const total = totals(state.rows);
   const filled = state.rows.filter((r) => r.per100).length;
 
-  async function save() {
+  /**
+   * Сохраняет блюдо в рецепты. Блюдо из рецепта обновляет его. `asNew` создаёт новый рецепт,
+   * исходный не меняется, а калькулятор связывается с новым.
+   */
+  async function save(asNew = false) {
     // Второе нажатие во время сохранения создало бы второй рецепт.
     if (saving) return;
     setSaving(true);
     const linked = state.recipeId;
     try {
-      const id = await saveRecipe(state);
+      const target: DishState = { ...state };
+      if (asNew) delete target.recipeId;
+      const id = await saveRecipe(target);
+      if (asNew) {
+        dispatch({ type: 'setRecipeId', value: id });
+        setMessage(`Сохранён новый рецепт «${state.name.trim() || 'Без названия'}».`);
+        return;
+      }
       // Отдельное действие, а не замена состояния: правки во время сохранения не теряются.
       dispatch({ type: 'setRecipeId', value: id });
       setMessage(linked === id ? 'Рецепт обновлён.' : 'Рецепт сохранён в «Мои рецепты».');
@@ -122,7 +133,12 @@ export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageP
       ) : null}
       <div className="calc-layout">
         <IngredientsEditor state={state} dispatch={dispatch} onRemoveRow={removeRow} />
-        <DishExtras state={state} dispatch={dispatch} />
+        <DishExtras
+          state={state}
+          dispatch={dispatch}
+          saving={saving}
+          onSaveAsNew={() => void save(true)}
+        />
       </div>
     </section>
   );
