@@ -1731,6 +1731,9 @@ a {
 
 .recipe-list {
   display: grid;
+  /* minmax(0, 1fr): иначе колонка растягивается по самой широкой строке кнопок
+     и страница прокручивается вбок. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
   margin: 0;
   padding: 0;
@@ -1767,6 +1770,33 @@ a {
 
 .recipe-actions .action-menu {
   margin-left: auto;
+}
+
+/* Узкий экран: «В калькулятор» — во всю ширину, под ней «Изменить рецепт» и «⋯». */
+@media (max-width: 520px) {
+  .recipe-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .recipe-actions > .button-primary {
+    grid-column: 1 / -1;
+  }
+
+  .recipe-actions .button {
+    min-width: 0;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .recipe-actions .action-menu {
+    margin-left: 0;
+  }
+
+  .recipe-actions .action-menu-trigger {
+    width: 44px;
+    height: 44px;
+  }
 }
 
 /* ===== Настройки: группы как в iOS ===== */
@@ -3098,6 +3128,177 @@ a {
 
   .dish-table .row-cooked th label {
     font-size: var(--text-lg);
+  }
+}
+
+/* ===== Узкий телефон: меньше 390 px =====
+   Размеры меняются плавно: при 320 px — наименьшие, к 390 px — как на обычном телефоне.
+   --fluid растёт от 0 при 320 px до 70px при 390 px. Каждое значение задано как
+   clamp(при 320 px, формула, при 390 px). Корень в процентах: шрифт из настроек браузера
+   по-прежнему работает. */
+@media (max-width: 389.98px) {
+  :root {
+    --fluid: clamp(0px, 100vw - 320px, 70px);
+    /* Поля экрана и отступы карточек: 12 px при 320, 16 px при 390. */
+    --gutter: calc(12px + var(--fluid) * 4 / 70);
+    --tabbar-gap: calc(8px + var(--fluid) * 4 / 70);
+  }
+
+  /* Корень 16 px при 320 и 17 px при 390: вся шкала в rem уменьшается вместе с ним. */
+  html {
+    font-size: clamp(100%, calc(100% + (100vw - 320px) / 70), 106.25%);
+  }
+
+  .app-main {
+    padding-right: max(var(--gutter), env(safe-area-inset-right));
+    padding-left: max(var(--gutter), env(safe-area-inset-left));
+  }
+
+  .banner {
+    width: calc(100% - 2 * var(--gutter));
+  }
+
+  .card,
+  .dish-table tr,
+  .catalog-table tr {
+    padding: var(--gutter);
+  }
+
+  .dish-table .row-total {
+    padding: var(--space-3) var(--gutter);
+  }
+
+  .chips-scroll {
+    margin: 0 calc(-1 * var(--gutter));
+    padding: 2px var(--gutter) var(--space-2);
+  }
+
+  .group-row {
+    padding: var(--space-3) var(--gutter);
+  }
+
+  .group-label,
+  .group-hint {
+    padding-inline: var(--gutter);
+    margin-inline: 0;
+  }
+
+  .group > .hint,
+  .group > .form-actions {
+    margin-inline: var(--gutter);
+  }
+
+  .modal {
+    padding: 0 max(var(--gutter), env(safe-area-inset-right))
+      max(var(--space-6), env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left));
+  }
+
+  .modal-header {
+    margin: 0 calc(-1 * max(var(--gutter), env(safe-area-inset-right))) var(--space-3)
+      calc(-1 * max(var(--gutter), env(safe-area-inset-left)));
+    padding: max(var(--space-3), env(safe-area-inset-top))
+      max(var(--gutter), env(safe-area-inset-right)) var(--space-3)
+      max(var(--gutter), env(safe-area-inset-left));
+  }
+
+  /* Шрифты: 28 → 34 px у заголовка страницы, остальные — в той же пропорции. */
+  h1 {
+    font-size: clamp(1.75rem, calc(1.75rem + var(--fluid) * 0.06), 2rem);
+  }
+
+  .recipe-item h2,
+  .dish-table .ingredient-row .input-name[data-selected] {
+    font-size: clamp(1.125rem, calc(1.125rem + var(--fluid) * 0.03), 1.25rem);
+  }
+
+  .dish-table .weight-field .input {
+    font-size: clamp(1.25rem, calc(1.25rem + var(--fluid) * 0.06), 1.5rem);
+  }
+
+  .dish-table .ingredient-row .cell-kcal {
+    font-size: clamp(1.5rem, calc(1.5rem + var(--fluid) * 0.06), 1.75rem);
+  }
+
+  .dish-table .row-total .cell-kcal {
+    font-size: clamp(1.625rem, calc(1.625rem + var(--fluid) * 0.06), 1.875rem);
+  }
+
+  .macro-ring-label b {
+    font-size: clamp(2rem, calc(2rem + var(--fluid) * 0.06), 2.25rem);
+  }
+
+  .dish-table .cell-number,
+  .macro-chip b,
+  .catalog-table .cell-number:not(.cell-kcal) {
+    font-size: clamp(1rem, calc(1rem + var(--fluid) * 0.03), 1.125rem);
+  }
+
+  /* Плашки БЖУ: внутренние отступы 6/8 px при 320 и 8/12 px при 390. */
+  .dish-table .ingredient-row :is(.cell-protein, .cell-fat, .cell-carbs),
+  .macro-chip,
+  .catalog-table .cell-number:not(.cell-kcal) {
+    padding: calc(6px + var(--fluid) * 2 / 70) calc(8px + var(--fluid) * 4 / 70);
+  }
+
+  .button {
+    padding-inline: calc(16px + var(--fluid) * 4 / 70);
+  }
+
+  /* Панель вкладок: «Настройки» помещается целиком. */
+  .app-nav {
+    padding: 4px;
+  }
+
+  .app-nav a {
+    padding: 0 2px;
+    font-size: 0.6875rem;
+  }
+
+  /* Кнопки под итогом — столбиком во всю ширину, длинный текст переносится. */
+  .form-actions-start {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-actions-start .button {
+    padding-inline: var(--space-3);
+    white-space: normal;
+    text-align: center;
+  }
+
+  /* Сортировка: список сжимается, длинный вариант обрезается многоточием. */
+  .list-toolbar,
+  .sort-field {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .sort-field {
+    flex: 1 1 auto;
+  }
+
+  .sort-field .input {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-overflow: ellipsis;
+  }
+
+  /* Карточка продукта: отметка проверки — своей строкой, действия — под ней. */
+  .catalog-table .cell-verified,
+  .catalog-table .cell-actions {
+    grid-column: 1 / -1;
+  }
+
+  .catalog-table .cell-actions {
+    justify-content: space-between;
+  }
+}
+
+/* Уже 360 px «Углеводы» упирается в край плашки: подпись сокращается, как в справочнике.
+   Полное название остаётся в имени поля для программ чтения с экрана. */
+@media (max-width: 359.98px) {
+  .dish-table .ingredient-row .cell-carbs::before {
+    content: 'Углев.';
   }
 }
 
