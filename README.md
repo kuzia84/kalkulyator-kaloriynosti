@@ -88,13 +88,22 @@ npm run preview      # проверка сборки на http://localhost:4173
 
 ### Google
 
-1. Откройте https://console.cloud.google.com/, создайте проект.
-2. Включите **Google Drive API** (APIs & Services → Library).
-3. Настройте экран согласия (OAuth consent screen): тип External, scope `.../auth/drive.file` и `email`. Пока приложение в режиме Testing, войти могут только тестовые пользователи из списка. Для всех — нажмите Publish app.
-4. Создайте OAuth client ID типа **Web application**:
+Настройки входа находятся в разделе **Google Auth Platform** («Платформа аутентификации Google»). В нём четыре подраздела: Branding, Audience, Data Access, Clients. Прежнего пункта «OAuth consent screen» в меню больше нет.
+
+1. Откройте https://console.cloud.google.com/. В выборе проекта вверху нажмите **New project**, введите имя и нажмите **Create**. Проверьте, что новый проект выбран.
+2. В поиске вверху наберите `Google Drive API`, откройте его и нажмите **Enable**.
+3. В поиске наберите `Google Auth Platform` и откройте раздел. Нажмите **Get started** и заполните мастер:
+   - App name — название, которое увидит пользователь при входе.
+   - User support email — ваша почта.
+   - Audience — **External**.
+   - Contact information — ваша почта.
+   - Отметьте согласие с правилами и нажмите **Create**.
+4. **Data Access** → **Add or remove scopes**. Отметьте `.../auth/drive.file` и `.../auth/userinfo.email`, нажмите **Update**, затем **Save**.
+5. **Audience**. Пока приложение в режиме Testing, войти могут только адреса из **Test users** → **Add users**. Чтобы входить мог любой, нажмите **Publish app**.
+6. **Clients** → **Create client**, тип **Web application**:
    - Authorized JavaScript origins: `https://<логин>.github.io` и `http://localhost:5173`.
-   - Authorized redirect URIs: `https://<логин>.github.io/kalkulyator-kaloriynosti/` и `http://localhost:5173/` — с косой чертой в конце.
-5. Скопируйте Client ID.
+   - Authorized redirect URIs: `https://<логин>.github.io/kalkulyator-kaloriynosti/` и `http://localhost:5173/`. Косая черта в конце обязательна, без неё Google вернёт `redirect_uri_mismatch`.
+7. Нажмите **Create** и скопируйте Client ID. Он заканчивается на `.apps.googleusercontent.com`. Client secret приложению не нужен.
 
 ### Яндекс
 
@@ -110,7 +119,9 @@ npm run preview      # проверка сборки на http://localhost:4173
   VITE_GOOGLE_CLIENT_ID=...apps.googleusercontent.com
   VITE_YANDEX_CLIENT_ID=...
   ```
-- Для GitHub Pages — Settings → Secrets and variables → Actions → **Variables**: `VITE_GOOGLE_CLIENT_ID`, `VITE_YANDEX_CLIENT_ID`. Client ID не секрет: он всё равно виден в коде страницы.
+- Для GitHub Pages — Settings → Secrets and variables → Actions → **Variables**: `VITE_GOOGLE_CLIENT_ID`, `VITE_YANDEX_CLIENT_ID`. Client ID не секрет: он всё равно виден в коде страницы. Сборка читает переменные только при деплое. После того как вы их добавили, запустите workflow «Deploy to GitHub Pages» вручную: Actions → Run workflow.
+
+Кнопки входа находятся в «Настройках» → «Перенос данных», под кнопками файла.
 
 iCloud и Облако Mail.ru пока не поддерживаются. Для iCloud нужен платный Apple Developer и CloudKit. У Облака Mail.ru нет открытого API для сайта без сервера.
 
