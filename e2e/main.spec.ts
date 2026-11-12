@@ -38,6 +38,10 @@ test('основной сценарий: продукт, вес, вес гото
   // 616 / 560 × 100 = 110
   await expect(page.getByLabel('Калорийность, ккал, на 100 г готового блюда')).toHaveText('110');
   await expect(page.getByLabel('Белки, г, на 100 г готового блюда')).toHaveText('4,5');
+  // Карточка с диаграммой показывает уваренное блюдо, значения сырого видны в таблице.
+  await expect(page.getByRole('heading', { name: 'На 100 г готового блюда' })).toBeVisible();
+  await expect(page.getByLabel('Калорийность, ккал, на 100 г блюда')).toBeVisible();
+  await expect(page.getByLabel('Калорийность, ккал, на 100 г блюда')).toHaveText('103');
 
   // Черновик пишется с паузой: ждём, пока запись появится в IndexedDB, и перезагружаем страницу.
   await expect

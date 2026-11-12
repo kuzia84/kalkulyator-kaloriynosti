@@ -40,7 +40,8 @@ describe('калькулятор', () => {
     const iTotal = summary.findIndex((t) => t.startsWith('Итого'));
     const iPer100 = summary.findIndex((t) => t.startsWith('На 100 г блюда'));
     const iCooked = summary.findIndex((t) => t.startsWith('На 100 г готового блюда'));
-    expect(iAdd).toBeGreaterThan(1);
+    // Заголовок таблицы, строки ингредиентов, потом кнопка.
+    expect(iAdd).toBe(screen.getAllByRole('combobox').length + 1);
     expect(iTotal).toBe(iAdd + 1);
     expect(iPer100).toBe(iTotal + 1);
     expect(iCooked).toBe(iPer100 + 1);

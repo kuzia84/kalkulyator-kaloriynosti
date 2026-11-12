@@ -54,6 +54,17 @@ describe('порция, диаграмма, рецепты', () => {
       .closest('section')!;
     expect(within(macro).getByText('798')).toBeInTheDocument();
     expect(within(macro).getByText('Углеводы').closest('li')).toHaveTextContent('100 %');
+    // Значения сырого блюда остаются в таблице.
+    expect(screen.getByRole('table')).toHaveClass('is-cooked');
+  });
+
+  it('вес после варки без продуктов не меняет заголовок диаграммы', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByRole('table');
+    await user.type(screen.getByLabelText('На 100 г готового блюда (с учётом уварки)'), '300');
+    expect(screen.getByRole('heading', { name: 'На 100 г блюда' })).toBeInTheDocument();
+    expect(screen.getByRole('table')).not.toHaveClass('is-cooked');
   });
 
   it('сохранить в рецепты, открыть из списка', async () => {

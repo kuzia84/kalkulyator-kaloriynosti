@@ -5,7 +5,6 @@ import {
   formatWeight,
   NUTRIENT_KEYS,
   per100,
-  per100Cooked,
   portion,
   sanitizeDecimalInput,
   totals,
@@ -30,9 +29,10 @@ export function DishSummary({ state, dispatch, actions }: DishSummaryProps) {
   const baseWeight = dishWeight(total.weight, state.cookedWeight);
   const portionValues = portion(total.nutrients, baseWeight, state.portionWeight);
   const perHundred = per100(total.nutrients, total.weight);
-  // Задан вес после варки — диаграмма показывает уваренное блюдо.
-  const perHundredCooked = per100Cooked(total.nutrients, state.cookedWeight);
   const usesCooked = state.cookedWeight.trim() !== '' && baseWeight != null;
+  // Задан вес после варки и есть продукты с весом — диаграмма показывает уваренное блюдо.
+  const perHundredCooked =
+    usesCooked && total.weight > 0 ? per100(total.nutrients, baseWeight) : null;
 
   return (
     <>

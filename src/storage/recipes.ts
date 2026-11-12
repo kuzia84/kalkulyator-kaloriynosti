@@ -1,5 +1,5 @@
 import { newId } from '../lib/id';
-import { emptyRow, INITIAL_ROWS, type DishState } from '../dish/state';
+import { emptyRow, type DishState } from '../dish/state';
 import { db as defaultDb, type AppDB } from './db';
 import type { Dish, DishRow } from './schema';
 
@@ -94,7 +94,7 @@ export function recipeToState(recipe: Dish): DishState {
   // после ввода веса, как в новом блюде.
   const rows: DishRow[] = recipe.rows.map((r) => ({ ...r, id: newId() }));
   // Как и пустая таблица, открытый рецепт показывает хотя бы одну строку.
-  while (rows.length < INITIAL_ROWS) rows.push(emptyRow());
+  if (rows.length === 0) rows.push(emptyRow());
   return {
     name: recipe.name,
     rows,

@@ -59,6 +59,8 @@ export function DishTable({
   const hasWeight = total.weight > 0;
   const perHundred = per100(total.nutrients, total.weight);
   const perHundredCooked = per100Cooked(total.nutrients, state.cookedWeight);
+  // Карточка рядом с таблицей показывает уваренное блюдо, поэтому строка сырого видна в таблице.
+  const showsCooked = hasWeight && perHundredCooked != null;
   const cookedHeavier = isCookedHeavier(total.weight, state.cookedWeight);
   const cooked = parseWeight(state.cookedWeight);
   const share = hasWeight ? macroEnergyShare(total.nutrients) : null;
@@ -70,7 +72,7 @@ export function DishTable({
     dispatch({ type: 'setWeight', rowId, weight });
 
   return (
-    <table className="dish-table">
+    <table className={showsCooked ? 'dish-table is-cooked' : 'dish-table'}>
       <caption className="visually-hidden">Ингредиенты блюда и расчёт калорийности</caption>
       <thead>
         <tr>
