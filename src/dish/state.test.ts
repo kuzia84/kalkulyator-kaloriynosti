@@ -53,9 +53,9 @@ describe('dishReducer', () => {
   it('добавление и удаление строк', () => {
     let s = initialDishState();
     s = dishReducer(s, { type: 'addRow' });
-    expect(s.rows).toHaveLength(5);
+    expect(s.rows).toHaveLength(2);
     s = dishReducer(s, { type: 'removeRow', rowId: s.rows[0]!.id });
-    expect(s.rows).toHaveLength(4);
+    expect(s.rows).toHaveLength(1);
   });
 
   it('удаление последней строки оставляет одну пустую', () => {
@@ -65,14 +65,14 @@ describe('dishReducer', () => {
   });
 
   it('возврат строки на место не трогает правки после удаления', () => {
-    let s = initialDishState();
+    let s = dishReducer(initialDishState(), { type: 'addRow' });
     const removed = s.rows[1]!;
     s = dishReducer(s, { type: 'removeRow', rowId: removed.id });
     s = dishReducer(s, { type: 'setWeight', rowId: s.rows[0]!.id, weight: '150' });
     s = dishReducer(s, { type: 'insertRow', row: removed, index: 1 });
     expect(s.rows[1]!.id).toBe(removed.id);
     expect(s.rows[0]!.weight).toBe('150');
-    expect(dishReducer(s, { type: 'insertRow', row: removed, index: 1 }).rows).toHaveLength(4);
+    expect(dishReducer(s, { type: 'insertRow', row: removed, index: 1 }).rows).toHaveLength(2);
   });
 
   it('ответ справочника для прежнего выбора не отмечает новый выбор', () => {

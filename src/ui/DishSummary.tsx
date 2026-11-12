@@ -5,6 +5,7 @@ import {
   formatWeight,
   NUTRIENT_KEYS,
   per100,
+  per100Cooked,
   portion,
   sanitizeDecimalInput,
   totals,
@@ -29,14 +30,18 @@ export function DishSummary({ state, dispatch, actions }: DishSummaryProps) {
   const baseWeight = dishWeight(total.weight, state.cookedWeight);
   const portionValues = portion(total.nutrients, baseWeight, state.portionWeight);
   const perHundred = per100(total.nutrients, total.weight);
+  // Задан вес после варки — диаграмма показывает уваренное блюдо.
+  const perHundredCooked = per100Cooked(total.nutrients, state.cookedWeight);
   const usesCooked = state.cookedWeight.trim() !== '' && baseWeight != null;
 
   return (
     <>
       <aside className="dish-side" aria-label="Итоги блюда">
         <section className="card macro-card" aria-labelledby="macro-title">
-          <h2 id="macro-title">На 100 г блюда</h2>
-          <MacroChart nutrients={perHundred} />
+          <h2 id="macro-title">
+            {perHundredCooked ? 'На 100 г готового блюда' : 'На 100 г блюда'}
+          </h2>
+          <MacroChart nutrients={perHundredCooked ?? perHundred} />
         </section>
 
         <section className="card" aria-labelledby="portion-title">

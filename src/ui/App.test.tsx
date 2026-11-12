@@ -32,15 +32,15 @@ function cell(label: string) {
 }
 
 describe('калькулятор', () => {
-  it('показывает 4 строки ингредиентов и блоки итогов в нужном порядке', async () => {
+  it('показывает 1 строку ингредиента и блоки итогов в нужном порядке', async () => {
     await renderApp();
-    expect(screen.getAllByRole('combobox')).toHaveLength(4);
+    expect(screen.getAllByRole('combobox')).toHaveLength(1);
     const summary = screen.getAllByRole('row').map((r) => r.textContent ?? '');
     const iAdd = summary.findIndex((t) => t.includes('Добавить ингредиент'));
     const iTotal = summary.findIndex((t) => t.startsWith('Итого'));
     const iPer100 = summary.findIndex((t) => t.startsWith('На 100 г блюда'));
     const iCooked = summary.findIndex((t) => t.startsWith('На 100 г готового блюда'));
-    expect(iAdd).toBeGreaterThan(4);
+    expect(iAdd).toBeGreaterThan(1);
     expect(iTotal).toBe(iAdd + 1);
     expect(iPer100).toBe(iTotal + 1);
     expect(iCooked).toBe(iPer100 + 1);
@@ -93,17 +93,19 @@ describe('калькулятор', () => {
   it('кнопка «Добавить ингредиент» добавляет одну строку', async () => {
     const user = await renderApp();
     await user.click(screen.getByRole('button', { name: /Добавить ингредиент/ }));
-    expect(screen.getAllByRole('combobox')).toHaveLength(5);
+    expect(screen.getAllByRole('combobox')).toHaveLength(2);
   });
 
   it('удаление строки отменяется', async () => {
     const user = await renderApp();
+    await user.click(screen.getByRole('button', { name: /Добавить ингредиент/ }));
+    await user.click(screen.getByRole('button', { name: /Добавить ингредиент/ }));
     await user.type(screen.getByLabelText('Вес ингредиента 2, г'), '50');
     await user.click(screen.getByRole('button', { name: 'Действия, строка 2' }));
     await user.click(screen.getByRole('menuitem', { name: 'Удалить строку 2' }));
-    expect(screen.getAllByRole('combobox')).toHaveLength(3);
+    expect(screen.getAllByRole('combobox')).toHaveLength(2);
     await user.click(screen.getByRole('button', { name: 'Отменить' }));
-    expect(screen.getAllByRole('combobox')).toHaveLength(4);
+    expect(screen.getAllByRole('combobox')).toHaveLength(3);
     expect(screen.getByLabelText('Вес ингредиента 2, г')).toHaveValue('50');
   });
 

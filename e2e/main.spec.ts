@@ -19,10 +19,11 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('основной сценарий: продукт, вес, вес готового блюда, перезагрузка', async ({ page }) => {
-  await expect(page.getByRole('combobox')).toHaveCount(4);
+  await expect(page.getByRole('combobox')).toHaveCount(1);
 
   await pick(page, 1, 'греч', /Гречневая крупа ядрица/);
   await page.getByLabel('Вес ингредиента 1, г').fill('200');
+  await page.getByRole('button', { name: 'Добавить ингредиент' }).click();
   await pick(page, 2, 'вода', /Вода питьевая/);
   await page.getByLabel('Вес ингредиента 2, г').fill('400');
 
@@ -82,6 +83,7 @@ test('контрольный пример ТЗ через ручной ввод,
   }
   await manual(1, 'Ингредиент А', '150');
   await page.getByLabel('Вес ингредиента 1, г').fill('200');
+  await page.getByRole('button', { name: 'Добавить ингредиент' }).click();
   await manual(2, 'Ингредиент Б', '200');
   await page.getByLabel('Вес ингредиента 2, г').fill('300');
 
@@ -194,6 +196,7 @@ test('правка рецепта: новый вес пересчитывает 
   await page.getByRole('link', { name: 'Изменить рецепт «Гречка»' }).click();
   await expect(page.getByRole('heading', { name: 'Правка рецепта' })).toBeVisible();
 
+  await page.getByRole('button', { name: 'Добавить ингредиент' }).click();
   await pick(page, 2, 'вода', /Вода питьевая/);
   await page.getByLabel('Вес ингредиента 2, г').fill('100');
   // 308 ккал на 200 г → 154 на 100 г

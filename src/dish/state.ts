@@ -3,7 +3,7 @@ import { parseWeight } from '../calc';
 import { newId } from '../lib/id';
 import type { DishRow, ProductSource } from '../storage/schema';
 
-export const INITIAL_ROWS = 4;
+export const INITIAL_ROWS = 1;
 
 export interface DishState {
   name: string;
