@@ -11,7 +11,7 @@
 | 5   | Числа в формате `ru-RU`                         | `src/calc/format.ts`, тест «форматирование»                                                                 | Выполнено                     |
 | 6   | Ключи API не в коде                             | `src/ui/SettingsPage.tsx`, `src/storage/settings.ts`, тест «ключ USDA сохраняется»                          | Выполнено                     |
 | 7   | 6 столбцов таблицы                              | `src/ui/DishTable.tsx`, `src/ui/columns.ts`                                                                 | Выполнено                     |
-| 8   | 4 строки при открытии                           | `src/dish/state.ts` (`INITIAL_ROWS`), тест «показывает 4 строки», e2e                                       | Выполнено                     |
+| 8   | 1 строка при открытии                           | `src/dish/state.ts` (`INITIAL_ROWS`), тест «показывает 1 строку», e2e                                       | Выполнено                     |
 | 9   | Поле ввода только в столбце 1                   | `src/ui/IngredientRow.tsx`: столбцы 3–6 — `<output>`                                                        | Выполнено                     |
 | 10  | Подсказки по началу названия                    | `src/catalog/catalog.ts` `searchLocal`, тест «ищет по началу названия»                                      | Выполнено                     |
 | 11  | До 5 видимых пунктов, прокрутка                 | `.combobox-list` в `styles.css`, e2e «клавиатура…»                                                          | Выполнено                     |

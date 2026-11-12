@@ -11,7 +11,7 @@ describe('черновик', () => {
   });
 
   it('сохраняет и читает блюдо целиком', async () => {
-    let s = initialDishState();
+    let s = dishReducer(initialDishState(), { type: 'addRow' });
     s = dishReducer(s, { type: 'setWeight', rowId: s.rows[1]!.id, weight: '12,5' });
     s = dishReducer(s, { type: 'setCookedWeight', value: '400' });
     await saveDraft(s);

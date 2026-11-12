@@ -9,7 +9,7 @@ import { deleteRecipe, listRecipes, recipeToState, restoreRecipe, saveRecipe } f
 beforeEach(resetDb);
 
 function sampleDish(): DishState {
-  let s = initialDishState();
+  let s = dishReducer(initialDishState(), { type: 'addRow' });
   const [a, b] = s.rows;
   s = dishReducer(
     s,
@@ -62,10 +62,10 @@ describe('рецепты', () => {
     expect(await listRecipes()).toHaveLength(1);
   });
 
-  it('открытый рецепт — не меньше 4 строк, связь с рецептом сохраняется', async () => {
+  it('открытый рецепт — его строки без добавленных пустых, связь с рецептом сохраняется', async () => {
     const id = await saveRecipe(sampleDish());
     const state = recipeToState((await listRecipes())[0]!);
-    expect(state.rows).toHaveLength(4);
+    expect(state.rows).toHaveLength(2);
     expect(state.recipeId).toBe(id);
     expect(state.rows[0]!.name).toBe('А');
   });

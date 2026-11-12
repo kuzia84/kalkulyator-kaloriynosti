@@ -1,5 +1,5 @@
 import { newId } from '../lib/id';
-import { emptyRow, INITIAL_ROWS, type DishState } from '../dish/state';
+import { emptyRow, type DishState } from '../dish/state';
 import { db as defaultDb, type AppDB } from './db';
 import type { Dish, DishRow } from './schema';
 
@@ -93,8 +93,8 @@ export function recipeToState(recipe: Dish): DishState {
   // Строки, уже учтённые в справочнике, при открытии ранг не меняют. Неучтённые учтутся
   // после ввода веса, как в новом блюде.
   const rows: DishRow[] = recipe.rows.map((r) => ({ ...r, id: newId() }));
-  // Как и пустая таблица, открытый рецепт показывает не меньше 4 строк.
-  while (rows.length < INITIAL_ROWS) rows.push(emptyRow());
+  // Как и пустая таблица, открытый рецепт показывает хотя бы одну строку.
+  if (rows.length === 0) rows.push(emptyRow());
   return {
     name: recipe.name,
     rows,

@@ -45,6 +45,28 @@ describe('порция, диаграмма, рецепты', () => {
     expect(within(macro).getByText('Белки').closest('li')).toHaveTextContent('0 %');
   });
 
+  it('диаграмма показывает уваренное блюдо, когда задан вес после варки', async () => {
+    const user = await dishWithSugar();
+    await user.type(screen.getByLabelText('На 100 г готового блюда (с учётом уварки)'), '50');
+    // 100 г сахара (399 ккал) уварили до 50 г → 798 ккал на 100 г.
+    const macro = screen
+      .getByRole('heading', { name: 'На 100 г готового блюда' })
+      .closest('section')!;
+    expect(within(macro).getByText('798')).toBeInTheDocument();
+    expect(within(macro).getByText('Углеводы').closest('li')).toHaveTextContent('100 %');
+    // Значения сырого блюда остаются в таблице.
+    expect(screen.getByRole('table')).toHaveClass('is-cooked');
+  });
+
+  it('вес после варки без продуктов не меняет заголовок диаграммы', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByRole('table');
+    await user.type(screen.getByLabelText('На 100 г готового блюда (с учётом уварки)'), '300');
+    expect(screen.getByRole('heading', { name: 'На 100 г блюда' })).toBeInTheDocument();
+    expect(screen.getByRole('table')).not.toHaveClass('is-cooked');
+  });
+
   it('сохранить в рецепты, открыть из списка', async () => {
     const user = await dishWithSugar();
     await user.type(screen.getByLabelText('Название блюда'), 'Сироп');

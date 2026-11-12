@@ -88,7 +88,7 @@ describe('правка рецепта', () => {
     const user = await openEditor();
     await user.click(screen.getByRole('button', { name: 'Действия, строка 2' }));
     await user.click(screen.getByRole('menuitem', { name: 'Удалить строку 2' }));
-    // Пустые строки рецепт добавил при открытии, первая пустая — строка 2 после удаления.
+    await user.click(screen.getByRole('button', { name: /Добавить ингредиент/ }));
     await user.type(screen.getByRole('combobox', { name: 'Ингредиент 2' }), 'картоф');
     await user.click(await screen.findByRole('option', { name: /Картофель/ }));
     await user.type(screen.getByLabelText('Вес ингредиента 2, г'), '100');
