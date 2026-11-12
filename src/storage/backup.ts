@@ -162,6 +162,28 @@ async function findSameProduct(db: AppDB, p: Product): Promise<Product | undefin
     .first();
 }
 
+/** Сколько рецептов файла пройдут проверку при загрузке. Чужой или битый файл — 0. */
+export function countBackupRecipes(json: string): number {
+  try {
+    const data: unknown = JSON.parse(json);
+    if (!isObject(data) || data.format !== BACKUP_FORMAT || !Array.isArray(data.recipes)) return 0;
+    return data.recipes.filter((r) => readRecipe(r) != null).length;
+  } catch {
+    return 0;
+  }
+}
+
+export type ImportMode = 'merge' | 'replace';
+
+export interface ImportOptions {
+  /**
+   * `merge` (по умолчанию) — объединить с данными устройства.
+   * `replace` — удалить рецепты устройства и взять рецепты из файла.
+   * Справочник продуктов объединяется в обоих режимах: так сохраняются правки справочника.
+   */
+  mode?: ImportMode;
+}
+
 export interface ImportResult {
   products: number;
   recipes: number;
@@ -169,12 +191,16 @@ export interface ImportResult {
 }
 
 /**
- * Загружает файл, сохранённый `exportBackup`. Данные объединяются с данными устройства:
+ * Загружает файл, сохранённый `exportBackup`. В режиме `merge` данные объединяются с данными устройства:
  * - продукт с тем же id заменяется, если в файле он проверен или имеет ранг выше;
  * - рецепт с тем же id заменяется, если в файле он новее.
- * Ничего не удаляется.
+ * Ничего не удаляется. Режим `replace` описан в `ImportOptions`.
  */
-export async function importBackup(json: string, db: AppDB = defaultDb): Promise<ImportResult> {
+export async function importBackup(
+  json: string,
+  db: AppDB = defaultDb,
+  { mode = 'merge' }: ImportOptions = {},
+): Promise<ImportResult> {
   let data: unknown;
   try {
     data = JSON.parse(json);
@@ -191,11 +217,15 @@ export async function importBackup(json: string, db: AppDB = defaultDb): Promise
   const rawRecipes = Array.isArray(data.recipes) ? data.recipes : [];
   const products = rawProducts.map(readProduct);
   const recipes = rawRecipes.map(readRecipe);
+  if (mode === 'replace' && !recipes.some(Boolean)) {
+    throw new BackupError('В копии нет рецептов. Рецепты устройства не тронуты.');
+  }
   let skipped =
     products.filter((p) => !p).length + recipes.reduce((n, r) => n + (r ? r.droppedRows : 1), 0);
   const result: ImportResult = { products: 0, recipes: 0, skipped: 0 };
 
   await db.transaction('rw', db.products, db.recipes, db.meta, async () => {
+    if (mode === 'replace') await db.recipes.clear();
     const deletedSeed = new Set((await db.meta.get('seed'))?.deletedIds ?? []);
     for (const p of products) {
       if (!p) continue;
