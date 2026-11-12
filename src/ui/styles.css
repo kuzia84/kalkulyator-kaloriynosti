@@ -624,6 +624,12 @@ a {
   display: none;
 }
 
+/* Итог «Сохранить как новый рецепт» — отдельной строкой под кнопками. */
+.save-status-extras {
+  flex-basis: 100%;
+  margin: 0;
+}
+
 .page-subtitle {
   margin: var(--space-1) 0 0;
   color: var(--text-muted);

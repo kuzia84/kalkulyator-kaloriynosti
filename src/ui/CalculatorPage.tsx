@@ -17,7 +17,12 @@ export interface CalculatorPageProps {
 
 export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageProps) {
   const { state, dispatch } = dish;
-  const [message, setMessage] = useState('');
+  // Итог сохранения: у кнопки в шапке или у «Сохранить как новый рецепт» внизу страницы.
+  // На телефоне шапка уходит за экран, поэтому итог показывается рядом с нажатой кнопкой.
+  const [message, setMessage] = useState<{ text: string; near: 'header' | 'extras' }>({
+    text: '',
+    near: 'header',
+  });
   const [saving, setSaving] = useState(false);
   const total = totals(state.rows);
   const filled = state.rows.filter((r) => r.per100).length;
@@ -31,20 +36,22 @@ export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageP
     if (saving) return;
     setSaving(true);
     const linked = state.recipeId;
+    const near = asNew ? 'extras' : 'header';
+    setMessage({ text: '', near });
     try {
-      const target: DishState = { ...state };
-      if (asNew) delete target.recipeId;
-      const id = await saveRecipe(target);
-      if (asNew) {
-        dispatch({ type: 'setRecipeId', value: id });
-        setMessage(`Сохранён новый рецепт «${state.name.trim() || 'Без названия'}».`);
-        return;
-      }
+      const id = await saveRecipe(asNew ? { ...state, recipeId: undefined } : state);
       // Отдельное действие, а не замена состояния: правки во время сохранения не теряются.
       dispatch({ type: 'setRecipeId', value: id });
-      setMessage(linked === id ? 'Рецепт обновлён.' : 'Рецепт сохранён в «Мои рецепты».');
+      setMessage({
+        near,
+        text: asNew
+          ? `Сохранён новый рецепт «${state.name.trim() || 'Без названия'}».`
+          : linked === id
+            ? 'Рецепт обновлён.'
+            : 'Рецепт сохранён в «Мои рецепты».',
+      });
     } catch {
-      setMessage('Не удалось сохранить рецепт.');
+      setMessage({ text: 'Не удалось сохранить рецепт.', near });
     } finally {
       setSaving(false);
     }
@@ -101,7 +108,7 @@ export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageP
           </p>
           {/* Итог сохранения — у заголовка, рядом с кнопкой «Сохранить». */}
           <p className="save-status" role="status">
-            {message}
+            {message.near === 'header' ? message.text : ''}
           </p>
         </div>
         <div className="page-actions">
@@ -137,6 +144,7 @@ export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageP
           state={state}
           dispatch={dispatch}
           saving={saving}
+          saveAsNewStatus={message.near === 'extras' ? message.text : ''}
           onSaveAsNew={() => void save(true)}
         />
       </div>

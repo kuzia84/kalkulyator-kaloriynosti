@@ -113,16 +113,10 @@ function RecipeForm({
   useCatalogCommits(state.rows, dispatch, true);
 
   // Экран открылся внутри того же раздела: App фокус не переводит, это делает форма.
-  // У нового рецепта на основе фокус — на названии: его почти всегда меняют первым.
+  // Фокус на заголовке: программа чтения с экрана объявляет новый экран.
   useEffect(() => {
-    const name = isBase ? document.querySelector<HTMLInputElement>('.dish-meta input') : null;
-    if (name) {
-      name.focus();
-      name.select();
-    } else {
-      titleRef.current?.focus();
-    }
-  }, [isBase]);
+    titleRef.current?.focus();
+  }, []);
 
   // Отмена удаления строки работает только на этом экране.
   useEffect(() => dismissUndo, [dismissUndo]);
@@ -146,7 +140,8 @@ function RecipeForm({
     try {
       if (isBase) {
         const id = await saveRecipe(state);
-        onDone({ id, name: state.name.trim() || sourceName });
+        // То же имя, под которым saveRecipe записывает рецепт без названия.
+        onDone({ id, name: state.name.trim() || 'Без названия' });
       } else {
         const saved = await updateRecipe(state);
         onDone({ id: saved.id, name: saved.name });

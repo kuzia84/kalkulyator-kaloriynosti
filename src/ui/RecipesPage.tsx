@@ -61,7 +61,9 @@ export function RecipesPage(props: RecipesPageProps) {
         dismissUndo={props.dismissUndo}
         onDone={(saved) => {
           setNotice(saved ? `Создан рецепт «${saved.name}».` : '');
-          window.location.hash = '#/recipes';
+          // Замена записи в истории: «Назад» в браузере не открывает форму снова,
+          // и второе «Сохранить» не создаёт ещё одну копию.
+          window.location.replace('#/recipes');
         }}
       />
     );

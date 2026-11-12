@@ -7,12 +7,20 @@ export interface DishExtrasProps {
   state: DishState;
   dispatch: (action: DishAction) => void;
   saving: boolean;
+  /** Итог «Сохранить как новый рецепт»: показывается под кнопками. */
+  saveAsNewStatus: string;
   /** «Сохранить как новый рецепт»: видна, только если блюдо открыто из рецепта. */
   onSaveAsNew: () => void;
 }
 
 /** Блоки рядом с таблицей калькулятора: итоги, порция, название и заметка, экспорт. */
-export function DishExtras({ state, dispatch, saving, onSaveAsNew }: DishExtrasProps) {
+export function DishExtras({
+  state,
+  dispatch,
+  saving,
+  saveAsNewStatus,
+  onSaveAsNew,
+}: DishExtrasProps) {
   return (
     <DishSummary
       state={state}
@@ -36,6 +44,9 @@ export function DishExtras({ state, dispatch, saving, onSaveAsNew }: DishExtrasP
           <button type="button" className="button" onClick={() => window.print()}>
             Печать
           </button>
+          <p className="save-status save-status-extras" role="status">
+            {saveAsNewStatus}
+          </p>
         </div>
       }
     />
