@@ -23,5 +23,10 @@ export default defineConfig({
     port: 4173,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
+    // Пробные client ID показывают кнопки входа. Страницы входа и API облака подменяет e2e/cloud.spec.ts.
+    env: {
+      VITE_GOOGLE_CLIENT_ID: 'e2e-google',
+      VITE_YANDEX_CLIENT_ID: 'e2e-yandex',
+    },
   },
 });

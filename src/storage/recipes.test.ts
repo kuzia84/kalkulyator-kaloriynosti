@@ -134,6 +134,33 @@ describe('экспорт и импорт JSON', () => {
     expect((await listRecipes())[0]!.name).toBe('Свежее');
   });
 
+  it('режим «заменить» удаляет рецепты устройства и берёт рецепты из файла', async () => {
+    const fromFile = await saveRecipe({ ...sampleDish(), name: 'Из облака' }, db, 1000);
+    const json = JSON.stringify(await exportBackup());
+    await deleteRecipe(fromFile);
+    await saveRecipe({ ...sampleDish(), name: 'Только здесь' }, db, 9000);
+
+    const result = await importBackup(json, db, { mode: 'replace' });
+    expect(result.recipes).toBe(1);
+    expect((await listRecipes()).map((r) => r.name)).toEqual(['Из облака']);
+  });
+
+  it('режим «заменить»: рецепт из файла берётся, даже если на устройстве он новее', async () => {
+    const id = await saveRecipe({ ...sampleDish(), name: 'Старое' }, db, 1000);
+    const json = JSON.stringify(await exportBackup());
+    await saveRecipe({ ...sampleDish(), recipeId: id, name: 'Новое' }, db, 9000);
+    await importBackup(json, db, { mode: 'replace' });
+    expect((await listRecipes()).map((r) => r.name)).toEqual(['Старое']);
+  });
+
+  it('режим «заменить» с битым файлом ничего не удаляет', async () => {
+    await saveRecipe(sampleDish());
+    await expect(
+      importBackup('{"format":"other"}', db, { mode: 'replace' }),
+    ).rejects.toBeInstanceOf(BackupError);
+    expect(await listRecipes()).toHaveLength(1);
+  });
+
   it('удалённая на устройстве запись набора не возвращается из файла', async () => {
     const json = JSON.stringify(await exportBackup());
     await db.products.delete('sk-014');

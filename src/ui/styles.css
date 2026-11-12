@@ -1945,6 +1945,17 @@ a {
   color: var(--accent-strong);
 }
 
+/* Кнопки облака переносятся на новую строку на узком экране. «Выйти» стоит справа. */
+.cloud-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.cloud-actions > .button-link {
+  margin-left: auto;
+}
+
 /* Подпись, описание и переключатель в одной строке: нажатие на текст переключает источник. */
 .switch-label {
   display: grid;

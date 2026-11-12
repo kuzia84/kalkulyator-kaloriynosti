@@ -38,6 +38,10 @@ jobs:
           BASE_PATH: /${{ github.event.repository.name }}/
           # Номер сборки — SHA именно того коммита, который собирается.
           BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          # Client ID приложений OAuth — из Settings → Secrets and variables → Actions → Variables.
+          # Переменная не задана — кнопка входа этого сервиса в настройках не показывается.
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          VITE_YANDEX_CLIENT_ID: ${{ vars.VITE_YANDEX_CLIENT_ID }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

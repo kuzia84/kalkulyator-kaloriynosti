@@ -162,6 +162,17 @@ async function findSameProduct(db: AppDB, p: Product): Promise<Product | undefin
     .first();
 }
 
+export type ImportMode = 'merge' | 'replace';
+
+export interface ImportOptions {
+  /**
+   * `merge` (по умолчанию) — объединить с данными устройства.
+   * `replace` — удалить рецепты устройства и взять рецепты из файла.
+   * Справочник продуктов объединяется в обоих режимах: так сохраняются правки справочника.
+   */
+  mode?: ImportMode;
+}
+
 export interface ImportResult {
   products: number;
   recipes: number;
@@ -169,12 +180,16 @@ export interface ImportResult {
 }
 
 /**
- * Загружает файл, сохранённый `exportBackup`. Данные объединяются с данными устройства:
+ * Загружает файл, сохранённый `exportBackup`. В режиме `merge` данные объединяются с данными устройства:
  * - продукт с тем же id заменяется, если в файле он проверен или имеет ранг выше;
  * - рецепт с тем же id заменяется, если в файле он новее.
- * Ничего не удаляется.
+ * Ничего не удаляется. Режим `replace` описан в `ImportOptions`.
  */
-export async function importBackup(json: string, db: AppDB = defaultDb): Promise<ImportResult> {
+export async function importBackup(
+  json: string,
+  db: AppDB = defaultDb,
+  { mode = 'merge' }: ImportOptions = {},
+): Promise<ImportResult> {
   let data: unknown;
   try {
     data = JSON.parse(json);
@@ -196,6 +211,7 @@ export async function importBackup(json: string, db: AppDB = defaultDb): Promise
   const result: ImportResult = { products: 0, recipes: 0, skipped: 0 };
 
   await db.transaction('rw', db.products, db.recipes, db.meta, async () => {
+    if (mode === 'replace') await db.recipes.clear();
     const deletedSeed = new Set((await db.meta.get('seed'))?.deletedIds ?? []);
     for (const p of products) {
       if (!p) continue;

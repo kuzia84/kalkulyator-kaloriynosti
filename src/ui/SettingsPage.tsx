@@ -7,6 +7,7 @@ import { isNewer, versionLabel } from '../app/updates';
 import { useOnline } from '../app/useOnline';
 import type { ExternalSource, Skin, Theme } from '../storage/schema';
 import { SUGGESTIONS_MAX, SUGGESTIONS_MIN } from '../storage/settings';
+import { CloudSync } from './CloudSync';
 import { DevTools } from './DevTools';
 import { ChevronIcon } from './icons';
 
@@ -285,8 +286,8 @@ export function SettingsPage() {
         <p className="group-hint">
           Данные хранятся только в этом браузере. Чтобы перенести справочник и рецепты на другое
           устройство, сохраните файл и загрузите его там. Настройки и ключ USDA в файл не входят.
-          При загрузке ничего не удаляется: более новые рецепты и проверенные продукты на устройстве
-          остаются.
+          При загрузке из файла ничего не удаляется: более новые рецепты и проверенные продукты на
+          устройстве остаются.
         </p>
         <div className="group-list">
           <button
@@ -316,6 +317,7 @@ export function SettingsPage() {
             }}
           />
         </div>
+        <CloudSync onMessage={setDataMessage} />
         {dataMessage ? (
           <p className="group-hint" role="status">
             {dataMessage}
