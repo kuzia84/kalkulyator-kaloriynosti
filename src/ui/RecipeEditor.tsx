@@ -1,7 +1,13 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { dishContentKey, dishReducer, type DishState } from '../dish/state';
 import { useCatalogCommits } from '../dish/useCatalogCommits';
-import { getRecipe, RecipeNotFoundError, recipeToState, updateRecipe } from '../storage/recipes';
+import {
+  getRecipe,
+  RecipeNotFoundError,
+  recipeToState,
+  saveRecipe,
+  updateRecipe,
+} from '../storage/recipes';
 import { DishSummary } from './DishSummary';
 import { IngredientsEditor } from './IngredientsEditor';
 import { Modal } from './Modal';
@@ -9,13 +15,21 @@ import type { UndoEntry } from './UndoToast';
 
 export interface RecipeEditorProps {
   recipeId: string;
+  /**
+   * 'edit' — правка этого рецепта. 'base' — новый рецепт на основе этого: исходный не меняется,
+   * новый появляется в списке только после «Сохранить».
+   */
+  mode?: 'edit' | 'base';
   offerUndo: (entry: UndoEntry) => void;
   dismissUndo: () => void;
-  /** Выход к списку рецептов. `saved` — рецепт, если правку сохранили. */
+  /** Выход к списку рецептов. `saved` — рецепт, если его сохранили. */
   onDone: (saved?: { id: string; name: string }) => void;
 }
 
-type Loaded = { status: 'loading' } | { status: 'missing' } | { status: 'ready'; state: DishState };
+type Loaded =
+  | { status: 'loading' }
+  | { status: 'missing' }
+  | { status: 'ready'; state: DishState; sourceName: string };
 
 /** Экран правки сохранённого рецепта. Загружает рецепт и показывает форму правки. */
 export function RecipeEditor(props: RecipeEditorProps) {
@@ -26,9 +40,17 @@ export function RecipeEditor(props: RecipeEditorProps) {
     getRecipe(props.recipeId)
       .then((recipe) => {
         if (cancelled) return;
-        setLoaded(
-          recipe ? { status: 'ready', state: recipeToState(recipe) } : { status: 'missing' },
-        );
+        if (!recipe) {
+          setLoaded({ status: 'missing' });
+          return;
+        }
+        const state = recipeToState(recipe);
+        if (props.mode === 'base') {
+          // Новый рецепт ни с чем не связан: «Сохранить» создаст запись, исходная не изменится.
+          delete state.recipeId;
+          state.name = `${recipe.name} (вариант)`;
+        }
+        setLoaded({ status: 'ready', state, sourceName: recipe.name });
       })
       .catch(() => {
         if (!cancelled) setLoaded({ status: 'missing' });
@@ -36,7 +58,7 @@ export function RecipeEditor(props: RecipeEditorProps) {
     return () => {
       cancelled = true;
     };
-  }, [props.recipeId]);
+  }, [props.recipeId, props.mode]);
 
   if (loaded.status === 'loading') {
     return (
@@ -58,18 +80,28 @@ export function RecipeEditor(props: RecipeEditorProps) {
       </section>
     );
   }
-  return <RecipeForm {...props} initial={loaded.state} />;
+  return <RecipeForm {...props} initial={loaded.state} sourceName={loaded.sourceName} />;
 }
 
 interface RecipeFormProps extends RecipeEditorProps {
   initial: DishState;
+  /** Название рецепта, который открыли: для правки и для «на основе». */
+  sourceName: string;
 }
 
 /**
  * Форма правки. Своё состояние, отдельное от калькулятора: черновик калькулятора не меняется.
  * Итоги, значения на 100 г и порция пересчитываются при каждой правке.
  */
-function RecipeForm({ initial, offerUndo, dismissUndo, onDone }: RecipeFormProps) {
+function RecipeForm({
+  initial,
+  sourceName,
+  mode = 'edit',
+  offerUndo,
+  dismissUndo,
+  onDone,
+}: RecipeFormProps) {
+  const isBase = mode === 'base';
   const [state, dispatch] = useReducer(dishReducer, initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -81,6 +113,7 @@ function RecipeForm({ initial, offerUndo, dismissUndo, onDone }: RecipeFormProps
   useCatalogCommits(state.rows, dispatch, true);
 
   // Экран открылся внутри того же раздела: App фокус не переводит, это делает форма.
+  // Фокус на заголовке: программа чтения с экрана объявляет новый экран.
   useEffect(() => {
     titleRef.current?.focus();
   }, []);
@@ -105,8 +138,14 @@ function RecipeForm({ initial, offerUndo, dismissUndo, onDone }: RecipeFormProps
     setSaving(true);
     setError('');
     try {
-      const saved = await updateRecipe(state);
-      onDone({ id: saved.id, name: saved.name });
+      if (isBase) {
+        const id = await saveRecipe(state);
+        // То же имя, под которым saveRecipe записывает рецепт без названия.
+        onDone({ id, name: state.name.trim() || 'Без названия' });
+      } else {
+        const saved = await updateRecipe(state);
+        onDone({ id: saved.id, name: saved.name });
+      }
     } catch (e) {
       setError(
         e instanceof RecipeNotFoundError
@@ -127,8 +166,9 @@ function RecipeForm({ initial, offerUndo, dismissUndo, onDone }: RecipeFormProps
       <div className="page-header">
         <div className="page-heading">
           <h1 className="page-title" tabIndex={-1} id="recipe-edit-title" ref={titleRef}>
-            Правка рецепта
+            {isBase ? 'Новый рецепт' : 'Правка рецепта'}
           </h1>
+          {isBase ? <p className="page-subtitle">На основе рецепта «{sourceName}»</p> : null}
         </div>
         <div className="page-actions">
           <button type="button" className="button" onClick={cancel}>
@@ -145,8 +185,9 @@ function RecipeForm({ initial, offerUndo, dismissUndo, onDone }: RecipeFormProps
         </div>
       </div>
       <p className="hint">
-        Измените вес, замените или добавьте ингредиенты. Калорийность и БЖУ пересчитываются сразу.
-        Рецепт меняется только после нажатия «Сохранить».
+        {isBase
+          ? `Измените название, вес или ингредиенты. Рецепт «${sourceName}» не изменится. Новый рецепт появится в списке после нажатия «Сохранить».`
+          : 'Измените вес, замените или добавьте ингредиенты. Калорийность и БЖУ пересчитываются сразу. Рецепт меняется только после нажатия «Сохранить».'}
       </p>
       {error ? (
         <p className="warning" role="alert">
@@ -166,7 +207,7 @@ function RecipeForm({ initial, offerUndo, dismissUndo, onDone }: RecipeFormProps
                 disabled={saving}
                 onClick={() => void save()}
               >
-                Сохранить изменения
+                {isBase ? 'Сохранить новый рецепт' : 'Сохранить изменения'}
               </button>
               <button type="button" className="button" onClick={cancel}>
                 Отмена
@@ -177,7 +218,11 @@ function RecipeForm({ initial, offerUndo, dismissUndo, onDone }: RecipeFormProps
       </div>
       {confirmLeave ? (
         <Modal title="Выйти без сохранения?" onClose={() => setConfirmLeave(false)}>
-          <p>Изменения в рецепте «{initial.name}» не сохранены и пропадут.</p>
+          <p>
+            {isBase
+              ? 'Новый рецепт не сохранён и пропадёт.'
+              : `Изменения в рецепте «${sourceName}» не сохранены и пропадут.`}
+          </p>
           <div className="form-actions">
             <button type="button" className="button" onClick={() => setConfirmLeave(false)}>
               Продолжить правку

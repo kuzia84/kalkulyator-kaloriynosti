@@ -4,14 +4,7 @@ import { dishReducer, initialDishState, pickAction, type DishState } from '../di
 import { resetDb } from '../test/db';
 import { db } from './db';
 import { BackupError, exportBackup, importBackup } from './backup';
-import {
-  deleteRecipe,
-  duplicateRecipe,
-  listRecipes,
-  recipeToState,
-  restoreRecipe,
-  saveRecipe,
-} from './recipes';
+import { deleteRecipe, listRecipes, recipeToState, restoreRecipe, saveRecipe } from './recipes';
 
 beforeEach(resetDb);
 
@@ -59,14 +52,6 @@ describe('рецепты', () => {
     const list = await listRecipes();
     expect(list).toHaveLength(1);
     expect(list[0]).toMatchObject({ name: 'Новое имя', createdAt: 1000, updatedAt: 2000 });
-  });
-
-  it('копия рецепта получает новый id', async () => {
-    const id = await saveRecipe(sampleDish());
-    const copyId = await duplicateRecipe(id);
-    expect(copyId).not.toBe(id);
-    const names = (await listRecipes()).map((r) => r.name).sort();
-    expect(names).toEqual(['Контрольное блюдо', 'Контрольное блюдо (копия)']);
   });
 
   it('удаление и возврат', async () => {

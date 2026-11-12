@@ -1,14 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { recipeEditHash, recipeEditId, useHash } from '../app/router';
+import { recipeBaseHash, recipeBaseId, recipeEditHash, recipeEditId, useHash } from '../app/router';
 import { formatNutrient, formatWeight, per100, per100Cooked, totals } from '../calc';
 import { hasContent, type DishAction, type DishState } from '../dish/state';
-import {
-  deleteRecipe,
-  duplicateRecipe,
-  listRecipes,
-  recipeToState,
-  restoreRecipe,
-} from '../storage/recipes';
+import { deleteRecipe, listRecipes, recipeToState, restoreRecipe } from '../storage/recipes';
 import type { Dish } from '../storage/schema';
 import { ActionMenu } from './ActionMenu';
 import { SearchIcon } from './icons';
@@ -44,7 +38,9 @@ function summary(recipe: Dish): { kcal: string | null; count: string; weight: st
 }
 
 export function RecipesPage(props: RecipesPageProps) {
-  const editId = recipeEditId(useHash());
+  const hash = useHash();
+  const editId = recipeEditId(hash);
+  const baseId = recipeBaseId(hash);
   const [notice, setNotice] = useState('');
   const returned = useRef(false);
   const { current, dispatch } = props;
@@ -52,8 +48,26 @@ export function RecipesPage(props: RecipesPageProps) {
   // Список после экрана правки — внутри того же раздела, App фокус не переводит.
   // Это верно и для кнопки «Назад» браузера, поэтому метка ставится при входе в правку.
   useEffect(() => {
-    if (editId != null) returned.current = true;
-  }, [editId]);
+    if (editId != null || baseId != null) returned.current = true;
+  }, [editId, baseId]);
+
+  if (baseId != null) {
+    return (
+      <RecipeEditor
+        key={`base-${baseId}`}
+        recipeId={baseId}
+        mode="base"
+        offerUndo={props.offerUndo}
+        dismissUndo={props.dismissUndo}
+        onDone={(saved) => {
+          setNotice(saved ? `Создан рецепт «${saved.name}».` : '');
+          // Замена записи в истории: «Назад» в браузере не открывает форму снова,
+          // и второе «Сохранить» не создаёт ещё одну копию.
+          window.location.replace('#/recipes');
+        }}
+      />
+    );
+  }
 
   if (editId != null) {
     return (
@@ -163,17 +177,6 @@ function RecipeList({
     }
   }
 
-  async function copy(recipe: Dish) {
-    setError('');
-    setShownNotice('');
-    try {
-      await duplicateRecipe(recipe.id);
-      await reload();
-    } catch {
-      setError('Не удалось скопировать рецепт.');
-    }
-  }
-
   return (
     <section aria-labelledby="recipes-title">
       <h1 className="page-title" tabIndex={-1} id="recipes-title" ref={titleRef}>
@@ -252,7 +255,13 @@ function RecipeList({
                   <ActionMenu
                     label={`Ещё действия с рецептом «${r.name}»`}
                     items={[
-                      { label: 'Копировать', onSelect: () => void copy(r) },
+                      {
+                        label: 'Создать на основе…',
+                        ariaLabel: `Создать новый рецепт на основе «${r.name}»`,
+                        onSelect: () => {
+                          window.location.hash = recipeBaseHash(r.id);
+                        },
+                      },
                       {
                         label: 'Удалить',
                         ariaLabel: `Удалить рецепт «${r.name}»`,

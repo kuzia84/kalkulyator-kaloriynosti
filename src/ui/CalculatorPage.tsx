@@ -17,23 +17,41 @@ export interface CalculatorPageProps {
 
 export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageProps) {
   const { state, dispatch } = dish;
-  const [message, setMessage] = useState('');
+  // Итог сохранения: у кнопки в шапке или у «Сохранить как новый рецепт» внизу страницы.
+  // На телефоне шапка уходит за экран, поэтому итог показывается рядом с нажатой кнопкой.
+  const [message, setMessage] = useState<{ text: string; near: 'header' | 'extras' }>({
+    text: '',
+    near: 'header',
+  });
   const [saving, setSaving] = useState(false);
   const total = totals(state.rows);
   const filled = state.rows.filter((r) => r.per100).length;
 
-  async function save() {
+  /**
+   * Сохраняет блюдо в рецепты. Блюдо из рецепта обновляет его. `asNew` создаёт новый рецепт,
+   * исходный не меняется, а калькулятор связывается с новым.
+   */
+  async function save(asNew = false) {
     // Второе нажатие во время сохранения создало бы второй рецепт.
     if (saving) return;
     setSaving(true);
     const linked = state.recipeId;
+    const near = asNew ? 'extras' : 'header';
+    setMessage({ text: '', near });
     try {
-      const id = await saveRecipe(state);
+      const id = await saveRecipe(asNew ? { ...state, recipeId: undefined } : state);
       // Отдельное действие, а не замена состояния: правки во время сохранения не теряются.
       dispatch({ type: 'setRecipeId', value: id });
-      setMessage(linked === id ? 'Рецепт обновлён.' : 'Рецепт сохранён в «Мои рецепты».');
+      setMessage({
+        near,
+        text: asNew
+          ? `Сохранён новый рецепт «${state.name.trim() || 'Без названия'}».`
+          : linked === id
+            ? 'Рецепт обновлён.'
+            : 'Рецепт сохранён в «Мои рецепты».',
+      });
     } catch {
-      setMessage('Не удалось сохранить рецепт.');
+      setMessage({ text: 'Не удалось сохранить рецепт.', near });
     } finally {
       setSaving(false);
     }
@@ -90,7 +108,7 @@ export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageP
           </p>
           {/* Итог сохранения — у заголовка, рядом с кнопкой «Сохранить». */}
           <p className="save-status" role="status">
-            {message}
+            {message.near === 'header' ? message.text : ''}
           </p>
         </div>
         <div className="page-actions">
@@ -122,7 +140,13 @@ export function CalculatorPage({ dish, offerUndo, dismissUndo }: CalculatorPageP
       ) : null}
       <div className="calc-layout">
         <IngredientsEditor state={state} dispatch={dispatch} onRemoveRow={removeRow} />
-        <DishExtras state={state} dispatch={dispatch} />
+        <DishExtras
+          state={state}
+          dispatch={dispatch}
+          saving={saving}
+          saveAsNewStatus={message.near === 'extras' ? message.text : ''}
+          onSaveAsNew={() => void save(true)}
+        />
       </div>
     </section>
   );

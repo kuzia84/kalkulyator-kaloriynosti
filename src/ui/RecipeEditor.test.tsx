@@ -175,3 +175,82 @@ describe('правка рецепта', () => {
     );
   });
 });
+
+async function openBase() {
+  const user = userEvent.setup();
+  window.location.hash = '#/recipes';
+  render(<App />);
+  await user.click(await screen.findByRole('button', { name: 'Ещё действия с рецептом «Сироп»' }));
+  await user.click(
+    screen.getByRole('menuitem', { name: 'Создать новый рецепт на основе «Сироп»' }),
+  );
+  await screen.findByRole('heading', { level: 1, name: 'Новый рецепт' });
+  return user;
+}
+
+describe('новый рецепт на основе', () => {
+  it('открывает форму с данными исходного, фокус на заголовке', async () => {
+    await openBase();
+    expect(screen.getByText('На основе рецепта «Сироп»')).toBeInTheDocument();
+    expect(screen.getByLabelText('Название блюда')).toHaveValue('Сироп (вариант)');
+    const title = screen.getByRole('heading', { level: 1, name: 'Новый рецепт' });
+    await waitFor(() => expect(title).toHaveFocus());
+    expect(totalKcal()).toHaveTextContent('399');
+  });
+
+  it('«Сохранить» создаёт новый рецепт, исходный не меняется', async () => {
+    const user = await openBase();
+    const historyLength = window.history.length;
+    const weight = screen.getByLabelText('Вес ингредиента 1, г');
+    await user.clear(weight);
+    await user.type(weight, '50');
+    await user.click(screen.getByRole('button', { name: 'Сохранить' }));
+    expect(await screen.findByText('Создан рецепт «Сироп (вариант)».')).toBeInTheDocument();
+    const all = await db.recipes.toArray();
+    expect(all.map((r) => r.name).sort()).toEqual(['Сироп', 'Сироп (вариант)']);
+    expect(all.find((r) => r.id === 'r1')?.rows[0]?.weight).toBe('100');
+    expect(all.find((r) => r.id !== 'r1')?.rows[0]?.weight).toBe('50');
+    // Выход заменяет запись в истории: «Назад» не открывает форму снова.
+    expect(window.location.hash).toBe('#/recipes');
+    expect(window.history.length).toBe(historyLength);
+  });
+
+  it('пустое название: сообщение называет рецепт так же, как список', async () => {
+    const user = await openBase();
+    await user.clear(screen.getByLabelText('Название блюда'));
+    await user.click(screen.getByRole('button', { name: 'Сохранить' }));
+    expect(await screen.findByText('Создан рецепт «Без названия».')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Без названия' })).toBeInTheDocument();
+  });
+
+  it('«Отмена» без правок ничего не создаёт', async () => {
+    const user = await openBase();
+    // «Отмена» есть и вверху экрана, и под формой: обе ведут к списку.
+    await user.click(screen.getAllByRole('button', { name: 'Отмена' })[0]!);
+    await screen.findByRole('heading', { level: 1, name: 'Мои рецепты' });
+    expect(await db.recipes.count()).toBe(1);
+  });
+});
+
+describe('калькулятор: сохранить как новый рецепт', () => {
+  it('блюдо из рецепта сохраняется отдельным рецептом, калькулятор связан с новым', async () => {
+    const user = userEvent.setup();
+    window.location.hash = '#/recipes';
+    render(<App />);
+    await user.click(await screen.findByRole('button', { name: /^В калькулятор: рецепт/ }));
+    const name = await screen.findByLabelText('Название блюда');
+    await user.clear(name);
+    await user.type(name, 'Сироп густой');
+    await user.click(screen.getByRole('button', { name: 'Сохранить как новый рецепт' }));
+    // Итог — под кнопкой: на телефоне шапка страницы в этот момент за экраном.
+    const status = await screen.findByText('Сохранён новый рецепт «Сироп густой».');
+    expect(status).toHaveClass('save-status-extras');
+    const names = (await db.recipes.toArray()).map((r) => r.name).sort();
+    expect(names).toEqual(['Сироп', 'Сироп густой']);
+    // Следующее «Обновить рецепт» пишет в новый рецепт, а не в исходный.
+    await user.click(screen.getByRole('button', { name: 'Обновить рецепт' }));
+    await screen.findByText('Рецепт обновлён.');
+    expect(await db.recipes.count()).toBe(2);
+    expect((await db.recipes.get('r1'))?.name).toBe('Сироп');
+  });
+});

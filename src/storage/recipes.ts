@@ -88,26 +88,6 @@ export async function restoreRecipe(recipe: Dish, db: AppDB = defaultDb): Promis
   await db.recipes.put(recipe);
 }
 
-/** Копия рецепта с новым id и пометкой «копия» в названии. */
-export async function duplicateRecipe(
-  id: string,
-  db: AppDB = defaultDb,
-  now = Date.now(),
-): Promise<string> {
-  const source = await db.recipes.get(id);
-  if (!source) throw new Error('Рецепт не найден.');
-  const copy: Dish = {
-    ...source,
-    id: newId(),
-    name: `${source.name} (копия)`,
-    rows: source.rows.map((r) => ({ ...r, id: newId() })),
-    createdAt: now,
-    updatedAt: now,
-  };
-  await db.recipes.add(copy);
-  return copy.id;
-}
-
 /** Состояние калькулятора из рецепта. Строки получают новые id, чтобы не путаться с рецептом. */
 export function recipeToState(recipe: Dish): DishState {
   // Строки, уже учтённые в справочнике, при открытии ранг не меняют. Неучтённые учтутся
