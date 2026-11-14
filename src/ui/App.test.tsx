@@ -63,8 +63,15 @@ describe('калькулятор', () => {
     expect(cell('Общий вес, г')).toHaveTextContent('200');
     expect(cell('Калорийность, ккал, на 100 г блюда')).toHaveTextContent('308');
 
+    // Плавающий итог на телефоне: без веса после варки подписан суммой сырых весов.
+    const totalRow = cell('Общий вес, г').closest('tr');
+    expect(totalRow?.querySelector('.total-label')).toHaveTextContent('Итого · 200 г');
+
     const cooked = screen.getByLabelText('На 100 г готового блюда (с учётом уварки)');
     await user.type(cooked, '560');
+    // Вес после варки задан — в подписи вес готового блюда, итог блюда прежний.
+    expect(totalRow?.querySelector('.total-word-cooked')).toHaveTextContent('Готовое');
+    expect(totalRow?.querySelector('.summary-weight')).toHaveTextContent('· 560 г');
     // 616 / 560 × 100 = 110
     expect(cell('Калорийность, ккал, на 100 г готового блюда')).toHaveTextContent('110');
     expect(screen.getByText(/крупы и макароны впитывают воду/)).toBeInTheDocument();
