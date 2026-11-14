@@ -1416,6 +1416,11 @@ a {
   font-weight: 500;
 }
 
+/* Подпись «Готовое» нужна только плавающему итогу на телефоне. */
+.total-word-cooked {
+  display: none;
+}
+
 .total-bar {
   display: none;
 }
@@ -3073,6 +3078,15 @@ a {
   }
 
   .dish-table .row-total .summary-weight {
+    display: inline;
+  }
+
+  /* Задан вес после варки — капсула подписана весом готового блюда, а не суммой сырых весов. */
+  .dish-table.is-cooked .row-total .total-word {
+    display: none;
+  }
+
+  .dish-table.is-cooked .row-total .total-word-cooked {
     display: inline;
   }
 
