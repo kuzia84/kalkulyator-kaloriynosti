@@ -42,15 +42,27 @@ export function seedProducts(): Product[] {
   return SEED.map((entry) => ({
     ...entry,
     nameNorm: normalizeName(entry.name),
-    source: 'skurikhin' as const,
     rank: 0,
     verified: false,
   }));
 }
 
 /**
+ * Есть ли в базе другой продукт, который уже описывает эту запись набора: с тем же названием
+ * или с той же записью USDA, в том числе среди объединённых модератором.
+ */
+async function hasTwin(db: AppDB, seed: Product): Promise<boolean> {
+  if ((await db.products.where('nameNorm').equals(seed.nameNorm).count()) > 0) return true;
+  const keys = [seed.id, ...(seed.externalId ? [seed.externalId] : [])];
+  if ((await db.products.where('aliases').anyOf(keys).count()) > 0) return true;
+  if (!seed.externalId) return false;
+  return (await db.products.where('externalId').equals(seed.externalId).count()) > 0;
+}
+
+/**
  * Обновляет стартовый набор в существующей базе, если в коде вышла новая версия набора.
- * - Новые записи добавляются.
+ * - Новые записи добавляются. Запись не добавляется, если в базе уже есть такой продукт:
+ *   пользователь добавил его сам или из сети. Иначе в подсказках появился бы дубль.
  * - Записи, которые модератор не проверял и не правил, получают исправленные значения.
  *   Ранг сохраняется.
  * - Записи, которые модератор проверил, правил или удалил, не трогаются.
@@ -64,7 +76,7 @@ export async function syncSeed(db: AppDB): Promise<void> {
       if (deleted.has(seed.id)) continue;
       const existing = await db.products.get(seed.id);
       if (!existing) {
-        await db.products.add(seed);
+        if (!(await hasTwin(db, seed))) await db.products.add(seed);
       } else if (!existing.verified && existing.editedAt == null) {
         await db.products.update(seed.id, {
           name: seed.name,

@@ -224,4 +224,60 @@ describe('syncSeed', () => {
     expect((await db.products.get('sk-015'))!.kcal).toBe(1);
     expect(await db.products.get('sk-016')).toBeUndefined();
   });
+
+  it('новая запись набора не дублирует продукт с тем же названием или той же записью USDA', async () => {
+    // База версии 1: записей новой версии в ней ещё нет, зато есть продукты из сети.
+    await db.products.bulkDelete(['sk-055', 'us-001', 'us-002', 'us-003']);
+    await db.products.add({
+      id: 'user-1',
+      name: 'говядина 2 категории',
+      nameNorm: normalizeName('Говядина 2 категории'),
+      source: 'user',
+      kcal: 150,
+      protein: 20,
+      fat: 7,
+      carbs: 0,
+      rank: 3,
+      verified: false,
+    });
+    await db.products.add({
+      id: 'web-1',
+      name: 'Avocados, raw',
+      nameNorm: normalizeName('Avocados, raw'),
+      source: 'usda',
+      externalId: 'usda:171705',
+      kcal: 160,
+      protein: 2,
+      fat: 14.7,
+      carbs: 1.8,
+      rank: 1,
+      verified: false,
+    });
+    await db.products.add({
+      id: 'merged-1',
+      name: 'Киноа белая',
+      nameNorm: normalizeName('Киноа белая'),
+      source: 'usda',
+      aliases: ['usda:168874'],
+      kcal: 368,
+      protein: 14.1,
+      fat: 6.1,
+      carbs: 57.2,
+      rank: 1,
+      verified: true,
+    });
+    await db.meta.update('seed', { version: 1 });
+    await syncSeed(db);
+    // Говядина — тот же продукт по названию, авокадо — по externalId, киноа — по объединению.
+    expect(await db.products.get('sk-055')).toBeUndefined();
+    expect(await db.products.get('us-001')).toBeUndefined();
+    expect(await db.products.get('us-002')).toBeUndefined();
+    // Булгура в базе не было: запись добавлена.
+    expect(await db.products.get('us-003')).toMatchObject({
+      name: 'Булгур',
+      source: 'usda',
+      externalId: 'usda:170688',
+      verified: false,
+    });
+  });
 });
