@@ -10,7 +10,7 @@
   color-scheme: light;
   /* Нейтральная шкала с лёгким тёплым оттенком: цвет несут акцент и диаграмма, а не фон. */
   --bg: #f4f4f1;
-  /* Слои под цветное поле оставлены ради «Этикетки», в «Стекле» они равны фону. */
+  /* Слои под цветное поле нужны «Стеклу» и «Этикетке». В «Обычном» они равны фону. */
   --blob-1: #f4f4f1;
   --blob-2: #f4f4f1;
   --blob-3: #f4f4f1;
@@ -58,7 +58,7 @@
   --radius-ctl: 10px;
   --radius-pill: 999px;
   --control-height: 48px;
-  /* Насыщенность: у стекла иерархию задают размер и цвет, у этикетки — жирный шрифт. */
+  /* Насыщенность: в «Обычном» иерархию задают размер и цвет, в «Этикетке» — жирный шрифт. */
   --weight-heavy: 600;
   --weight-bold: 600;
   --weight-medium: 500;
@@ -3687,11 +3687,26 @@ a {
 
 /* Кольцо БЖУ как кольца «Активности»: скруглённые концы и просветы между долями.
    Скругление выступает за конец дуги на половину толщины (6), просвет — ещё 4.
+   Короткая доля (is-short) без скругления: иначе точка шире самой доли наезжает на соседнюю.
+   Доля на всё кольцо (is-full) замкнута, без просвета.
    Браузер без calc() в stroke-dasharray рисует обычное кольцо из атрибутов. */
-:root[data-skin='frosted'] .macro-arc {
-  stroke-linecap: round;
-  stroke-dasharray: max(0.01, calc(var(--len) - 16)) 999;
-  stroke-dashoffset: calc(-1 * (var(--off) + 8));
+@supports (stroke-dasharray: max(1, calc(2 - 1)) 1) {
+  :root[data-skin='frosted'] .macro-arc {
+    stroke-linecap: round;
+    stroke-dasharray: max(0.01, calc(var(--len) - 16)) 999;
+    stroke-dashoffset: calc(-1 * (var(--off) + 8));
+  }
+
+  :root[data-skin='frosted'] .macro-arc.is-short {
+    stroke-linecap: butt;
+    stroke-dasharray: max(0.01, calc(var(--len) - 4)) 999;
+    stroke-dashoffset: calc(-1 * (var(--off) + 2));
+  }
+
+  :root[data-skin='frosted'] .macro-arc.is-full {
+    stroke-linecap: butt;
+    stroke-dasharray: none;
+  }
 }
 
 /* Разделители в группах начинаются от текста, а не от края ячейки. */
@@ -3712,6 +3727,17 @@ a {
     background-repeat: no-repeat;
     background-position: right top;
     background-size: calc(100% - var(--space-3)) 1px;
+  }
+}
+
+/* Отступ плавающих вкладок и итога от краёв экрана: 12 px, на узком телефоне до 8 px. */
+:root[data-skin='frosted'] {
+  --float-gap: 12px;
+}
+
+@media (max-width: 389.98px) {
+  :root[data-skin='frosted'] {
+    --float-gap: calc(8px + var(--fluid) * 4 / 70);
   }
 }
 
@@ -3739,9 +3765,9 @@ a {
 
   /* Плавающая панель вкладок, как в iOS 26. */
   :root[data-skin='frosted'] .app-nav {
-    left: max(12px, env(safe-area-inset-left));
-    right: max(12px, env(safe-area-inset-right));
-    bottom: max(12px, env(safe-area-inset-bottom));
+    left: max(var(--float-gap), env(safe-area-inset-left));
+    right: max(var(--float-gap), env(safe-area-inset-right));
+    bottom: max(var(--float-gap), env(safe-area-inset-bottom));
     height: var(--tabbar-height);
     padding: var(--space-1);
     background: var(--material);
@@ -3764,18 +3790,24 @@ a {
   }
 
   :root[data-skin='frosted'] .app-main {
-    padding-bottom: calc(var(--tabbar-height) + 12px + 120px + env(safe-area-inset-bottom));
+    padding-bottom: calc(
+      var(--tabbar-height) + var(--float-gap) + 120px + env(safe-area-inset-bottom)
+    );
   }
 
   :root[data-skin='frosted'] .toast-region {
-    bottom: calc(var(--tabbar-height) + 20px + 96px + env(safe-area-inset-bottom));
+    bottom: calc(
+      var(--tabbar-height) + var(--float-gap) + var(--space-2) + 96px + env(safe-area-inset-bottom)
+    );
   }
 
   /* Итог — аксессуар над панелью вкладок: та же ширина и тот же материал, зазор 8. */
   :root[data-skin='frosted'] .dish-table .row-total {
-    left: max(12px, env(safe-area-inset-left));
-    right: max(12px, env(safe-area-inset-right));
-    bottom: calc(max(12px, env(safe-area-inset-bottom)) + var(--tabbar-height) + var(--space-2));
+    left: max(var(--float-gap), env(safe-area-inset-left));
+    right: max(var(--float-gap), env(safe-area-inset-right));
+    bottom: calc(
+      max(var(--float-gap), env(safe-area-inset-bottom)) + var(--tabbar-height) + var(--space-2)
+    );
     padding: var(--space-2) var(--space-5);
     border-radius: var(--radius-card);
     background: var(--material);
@@ -3905,6 +3937,7 @@ a {
     .action-menu-trigger,
     .button-primary,
     .button-danger-solid,
+    .button-delete,
     .toast *
   ) {
   background: var(--surface-strong);

@@ -9,6 +9,8 @@ const PARTS = [
 
 const R = 40;
 const C = 2 * Math.PI * R;
+/** Короче этой длины дуга со скруглёнными концами и просветами не помещается в свою долю. */
+const ROUND_MIN = 16;
 
 /**
  * Пищевая ценность на 100 г: в центре кольца калорийность, кольцо — доли белков, жиров
@@ -35,7 +37,7 @@ export function MacroChart({ nutrients }: { nutrients: Nutrients | null }) {
             return (
               <circle
                 key={key}
-                className="macro-arc"
+                className={`macro-arc${len >= C - 0.01 ? ' is-full' : len < ROUND_MIN ? ' is-short' : ''}`}
                 // Длина и начало дуги для CSS: стекло рисует по ним дуги с просветами.
                 style={{ '--len': len, '--off': start } as CSSProperties}
                 cx="50"
