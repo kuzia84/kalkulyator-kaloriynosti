@@ -23,15 +23,34 @@ describe('этикетка', () => {
     expect(chosen).toEqual(system);
   });
 
-  it('этикетка переопределяет каждый цвет стекла, а её тёмная схема — каждый свой цвет', () => {
-    const glass = tokens(':root {');
+  it('этикетка переопределяет каждый цвет основного стиля, а её тёмная схема — каждый свой цвет', () => {
+    const plain = tokens(':root {');
     const label = tokens(":root[data-skin='label'] {");
     const labelDark = tokens(":root[data-skin='label'][data-theme='dark']");
     const isColor = (v: string) => /^#|rgb/.test(v);
-    for (const key of Object.keys(glass).filter((k) => isColor(glass[k]!)))
+    for (const key of Object.keys(plain).filter((k) => isColor(plain[k]!)))
       expect(label, key).toHaveProperty(key);
     for (const key of Object.keys(label).filter((k) => isColor(label[k]!)))
       expect(labelDark, key).toHaveProperty(key);
+  });
+});
+
+describe('стекло', () => {
+  it('системная и выбранная тёмная схема стекла задают одинаковые токены', () => {
+    const system = tokens(":root[data-skin='frosted']:not([data-theme='light'])");
+    const chosen = tokens(":root[data-skin='frosted'][data-theme='dark']");
+    expect(chosen).toEqual(system);
+  });
+
+  it('стекло переопределяет каждый цвет основного стиля, а его тёмная схема — каждый свой цвет', () => {
+    const plain = tokens(':root {');
+    const glass = tokens(":root[data-skin='frosted'] {");
+    const glassDark = tokens(":root[data-skin='frosted'][data-theme='dark']");
+    const isColor = (v: string) => /^#|rgb/.test(v);
+    for (const key of Object.keys(plain).filter((k) => isColor(plain[k]!)))
+      expect(glass, key).toHaveProperty(key);
+    for (const key of Object.keys(glass).filter((k) => isColor(glass[k]!)))
+      expect(glassDark, key).toHaveProperty(key);
   });
 });
 

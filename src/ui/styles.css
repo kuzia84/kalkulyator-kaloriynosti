@@ -1,59 +1,67 @@
 /*
  * Оформление задают два независимых атрибута на <html>:
- * - data-skin — стиль: без атрибута «Стекло», 'label' — «Этикетка»;
+ * - data-skin — стиль: без атрибута «Обычный», 'frosted' — «Стекло», 'label' — «Этикетка»;
  * - data-theme — цветовая схема: без атрибута «Системная», 'light' или 'dark'.
  * У каждого стиля свои токены для светлой и тёмной схемы. Компоненты берут цвета только из токенов.
  */
 
-/* ===== Стекло, светлая схема (по умолчанию) ===== */
+/* ===== Обычный, светлая схема (по умолчанию) ===== */
 :root {
   color-scheme: light;
-  --bg: #eef3ef;
-  --blob-1: #8fdcae;
-  --blob-2: #ffd09a;
-  --blob-3: #a9c8ff;
-  --surface: rgb(255 255 255 / 52%);
-  --surface-strong: rgb(255 255 255 / 82%);
-  --surface-2: rgb(255 255 255 / 62%);
-  --input-bg: rgb(255 255 255 / 72%);
-  --text: #121a15;
-  --text-muted: #4a554e;
-  --border: rgb(20 40 30 / 10%);
+  /* Нейтральная шкала с лёгким тёплым оттенком: цвет несут акцент и диаграмма, а не фон. */
+  --bg: #f4f4f1;
+  /* Слои под цветное поле нужны «Стеклу» и «Этикетке». В «Обычном» они равны фону. */
+  --blob-1: #f4f4f1;
+  --blob-2: #f4f4f1;
+  --blob-3: #f4f4f1;
+  --surface: #ffffff;
+  --surface-strong: #ffffff;
+  --surface-2: #efefeb;
+  --input-bg: #ffffff;
+  --text: #171a18;
+  --text-muted: #565c58;
+  --border: rgb(23 26 24 / 9%);
   /* Рамка полей ввода: контраст не меньше 3:1 к фону (WCAG 1.4.11). */
-  --border-input: #737d76;
-  --outline: rgb(20 40 30 / 9%);
-  --rim-hi: rgb(255 255 255 / 95%);
-  --rim-lo: rgb(255 255 255 / 20%);
-  --rim-hi2: rgb(255 255 255 / 60%);
+  --border-input: #7a807c;
+  --outline: rgb(23 26 24 / 9%);
+  /* Рамка карточки — ровная линия, без блика. */
+  --rim-hi: rgb(23 26 24 / 0%);
+  --rim-lo: rgb(23 26 24 / 0%);
+  --rim-hi2: rgb(23 26 24 / 0%);
   /* Оранжевый для «есть обновление»: белый текст на нём — 5,2:1. */
   --update-bg: #c2410c;
   --update-text: #ffffff;
-  --update-soft: rgb(255 237 220 / 72%);
+  --update-soft: #fbeee4;
   /* Белый текст на акценте — 5,3:1. */
   --accent: #187a48;
   --accent-strong: #12603a;
   --accent-contrast: #ffffff;
   --focus: #1b5fd1;
-  --warning-bg: rgb(255 196 120 / 45%);
+  --warning-bg: #fbf0dc;
   --warning-text: #6b3d00;
-  --ok-bg: rgb(120 210 160 / 40%);
+  --ok-bg: #e3f0e8;
   --ok-text: #12623a;
-  --note-bg: rgb(169 200 255 / 42%);
-  --note-text: #0f3f73;
+  --note-bg: #efefeb;
+  --note-text: #2f3532;
   --danger: #b3261e;
-  --backdrop: rgb(10 20 15 / 35%);
-  --toast-bg: #18201b;
+  --backdrop: rgb(20 22 21 / 40%);
+  --toast-bg: #1c1f1d;
   --toast-text: #ffffff;
-  --chart-protein: #187a48;
-  --chart-fat: #c27c0e;
-  --chart-carbs: #2e6fd8;
-  --shadow: 0 8px 28px rgb(28 60 42 / 12%);
-  --shadow-float: 0 12px 40px rgb(28 60 42 / 18%);
-  --glass-filter: blur(24px) saturate(180%);
-  --radius-card: 24px;
-  --radius-ctl: 14px;
+  /* Цвета БЖУ не совпадают с акцентом: диаграмма — данные, а не кнопка. */
+  --chart-protein: #b4533c;
+  --chart-fat: #c98a12;
+  --chart-carbs: #4a74b8;
+  --shadow: none;
+  --shadow-float: 0 12px 32px rgb(20 22 21 / 14%);
+  --glass-filter: none;
+  --radius-card: 16px;
+  --radius-ctl: 10px;
   --radius-pill: 999px;
   --control-height: 48px;
+  /* Насыщенность: в «Обычном» иерархию задают размер и цвет, в «Этикетке» — жирный шрифт. */
+  --weight-heavy: 600;
+  --weight-bold: 600;
+  --weight-medium: 500;
   --font:
     -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
@@ -79,96 +87,95 @@
   --text-2xl: 1.5rem;
   --text-3xl: 2rem;
   /* Нижняя панель вкладок на телефоне. */
-  --tabbar-height: 68px;
-  --tabbar-gap: 12px;
+  --tabbar-height: 64px;
 }
 
-/* ===== Стекло, тёмная схема ===== */
+/* ===== Обычный, тёмная схема ===== */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --bg: #0e1411;
-    --blob-1: #1f6b45;
-    --blob-2: #7a4a16;
-    --blob-3: #233f78;
-    --surface: rgb(38 46 42 / 50%);
-    --surface-strong: rgb(28 34 31 / 88%);
-    --surface-2: rgb(255 255 255 / 8%);
-    --input-bg: rgb(0 0 0 / 22%);
-    --text: #f1f5f2;
-    --text-muted: #b3beb7;
-    --border: rgb(255 255 255 / 10%);
-    --border-input: #7d8880;
-    --outline: rgb(0 0 0 / 55%);
-    --rim-hi: rgb(255 255 255 / 34%);
-    --rim-lo: rgb(255 255 255 / 5%);
-    --rim-hi2: rgb(255 255 255 / 16%);
+    --bg: #121413;
+    --blob-1: #121413;
+    --blob-2: #121413;
+    --blob-3: #121413;
+    --surface: #1a1d1b;
+    --surface-strong: #202321;
+    --surface-2: #262a28;
+    --input-bg: #151816;
+    --text: #eef0ee;
+    --text-muted: #a9b0ab;
+    --border: rgb(255 255 255 / 8%);
+    --border-input: #7d8480;
+    --outline: rgb(255 255 255 / 8%);
+    --rim-hi: rgb(255 255 255 / 0%);
+    --rim-lo: rgb(255 255 255 / 0%);
+    --rim-hi2: rgb(255 255 255 / 0%);
     --update-bg: #fb923c;
     --update-text: #1c1006;
-    --update-soft: rgb(251 146 60 / 18%);
+    --update-soft: #33251a;
     --accent: #5fd08f;
     --accent-strong: #8fe0b2;
     --accent-contrast: #06140c;
     --focus: #8ab4ff;
-    --warning-bg: rgb(240 160 60 / 25%);
+    --warning-bg: #3a2e16;
     --warning-text: #ffd39a;
-    --ok-bg: rgb(95 208 143 / 22%);
+    --ok-bg: #1d3327;
     --ok-text: #9ff0c2;
-    --note-bg: rgb(120 160 255 / 22%);
-    --note-text: #bcdcff;
+    --note-bg: #262a28;
+    --note-text: #d9ddda;
     --danger: #ff8a7a;
-    --backdrop: rgb(0 0 0 / 55%);
-    --toast-bg: #f1f5f2;
-    --toast-text: #0e1411;
-    --chart-protein: #5fd08f;
-    --chart-fat: #f5b54a;
-    --chart-carbs: #8ab4ff;
-    --shadow: 0 8px 28px rgb(0 0 0 / 45%);
-    --shadow-float: 0 12px 40px rgb(0 0 0 / 55%);
+    --backdrop: rgb(0 0 0 / 60%);
+    --toast-bg: #eef0ee;
+    --toast-text: #121413;
+    --chart-protein: #e58a72;
+    --chart-fat: #e8b44c;
+    --chart-carbs: #8fb0e8;
+    --shadow: none;
+    --shadow-float: 0 12px 32px rgb(0 0 0 / 50%);
   }
 }
 
 :root[data-theme='dark'] {
   /* Набор токенов совпадает с блоком prefers-color-scheme выше: это проверяет styles.test.ts. */
   color-scheme: dark;
-  --bg: #0e1411;
-  --blob-1: #1f6b45;
-  --blob-2: #7a4a16;
-  --blob-3: #233f78;
-  --surface: rgb(38 46 42 / 50%);
-  --surface-strong: rgb(28 34 31 / 88%);
-  --surface-2: rgb(255 255 255 / 8%);
-  --input-bg: rgb(0 0 0 / 22%);
-  --text: #f1f5f2;
-  --text-muted: #b3beb7;
-  --border: rgb(255 255 255 / 10%);
-  --border-input: #7d8880;
-  --outline: rgb(0 0 0 / 55%);
-  --rim-hi: rgb(255 255 255 / 34%);
-  --rim-lo: rgb(255 255 255 / 5%);
-  --rim-hi2: rgb(255 255 255 / 16%);
+  --bg: #121413;
+  --blob-1: #121413;
+  --blob-2: #121413;
+  --blob-3: #121413;
+  --surface: #1a1d1b;
+  --surface-strong: #202321;
+  --surface-2: #262a28;
+  --input-bg: #151816;
+  --text: #eef0ee;
+  --text-muted: #a9b0ab;
+  --border: rgb(255 255 255 / 8%);
+  --border-input: #7d8480;
+  --outline: rgb(255 255 255 / 8%);
+  --rim-hi: rgb(255 255 255 / 0%);
+  --rim-lo: rgb(255 255 255 / 0%);
+  --rim-hi2: rgb(255 255 255 / 0%);
   --update-bg: #fb923c;
   --update-text: #1c1006;
-  --update-soft: rgb(251 146 60 / 18%);
+  --update-soft: #33251a;
   --accent: #5fd08f;
   --accent-strong: #8fe0b2;
   --accent-contrast: #06140c;
   --focus: #8ab4ff;
-  --warning-bg: rgb(240 160 60 / 25%);
+  --warning-bg: #3a2e16;
   --warning-text: #ffd39a;
-  --ok-bg: rgb(95 208 143 / 22%);
+  --ok-bg: #1d3327;
   --ok-text: #9ff0c2;
-  --note-bg: rgb(120 160 255 / 22%);
-  --note-text: #bcdcff;
+  --note-bg: #262a28;
+  --note-text: #d9ddda;
   --danger: #ff8a7a;
-  --backdrop: rgb(0 0 0 / 55%);
-  --toast-bg: #f1f5f2;
-  --toast-text: #0e1411;
-  --chart-protein: #5fd08f;
-  --chart-fat: #f5b54a;
-  --chart-carbs: #8ab4ff;
-  --shadow: 0 8px 28px rgb(0 0 0 / 45%);
-  --shadow-float: 0 12px 40px rgb(0 0 0 / 55%);
+  --backdrop: rgb(0 0 0 / 60%);
+  --toast-bg: #eef0ee;
+  --toast-text: #121413;
+  --chart-protein: #e58a72;
+  --chart-fat: #e8b44c;
+  --chart-carbs: #8fb0e8;
+  --shadow: none;
+  --shadow-float: 0 12px 32px rgb(0 0 0 / 50%);
 }
 
 /* ===== Этикетка, светлая схема ===== */
@@ -216,6 +223,9 @@
   --radius-card: 4px;
   --radius-ctl: 4px;
   --radius-pill: 4px;
+  --weight-heavy: 800;
+  --weight-bold: 700;
+  --weight-medium: 600;
   --font:
     'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     sans-serif;
@@ -310,6 +320,170 @@
   --shadow-float: 0 8px 24px rgb(0 0 0 / 60%);
 }
 
+/* ===== Стекло, светлая схема =====
+   Подобие iOS 26 и macOS Tahoe. Содержимое лежит на непрозрачных ячейках, как в «Настройках».
+   Стекло — только у слоя навигации и управления: шапка, вкладки, итог, меню, окна.
+   Набор цветов совпадает с основным стилем: это проверяет styles.test.ts. */
+:root[data-skin='frosted'] {
+  color-scheme: light;
+  --bg: #f2f2f7;
+  --blob-1: #f2f2f7;
+  --blob-2: #f2f2f7;
+  --blob-3: #f2f2f7;
+  --surface: #ffffff;
+  --surface-strong: #ffffff;
+  /* Серая заливка элементов управления, как tertiarySystemFill. */
+  --surface-2: rgb(118 118 128 / 12%);
+  --input-bg: #ffffff;
+  --text: #000000;
+  /* Серее подписи нельзя: контраст к белому и к фону не меньше 4,5:1. */
+  --text-muted: #6c6c70;
+  --border: rgb(60 60 67 / 18%);
+  /* Рамка полей ввода: контраст не меньше 3:1 к фону (WCAG 1.4.11). */
+  --border-input: #808086;
+  --outline: rgb(0 0 0 / 6%);
+  --rim-hi: rgb(255 255 255 / 90%);
+  --rim-lo: rgb(255 255 255 / 20%);
+  --rim-hi2: rgb(255 255 255 / 55%);
+  /* Материал стекла: шапка, вкладки и итог — тоньше, меню и окна — плотнее. */
+  --material: rgb(250 250 252 / 72%);
+  --material-thick: rgb(250 250 252 / 90%);
+  --glass-edge: rgb(255 255 255 / 70%);
+  /* Лист снизу на телефоне: светлый — как фон, тёмный — на ступень светлее фона. */
+  --sheet: #f2f2f7;
+  /* Оранжевый для «есть обновление»: белый текст на нём — 5,2:1. */
+  --update-bg: #c2410c;
+  --update-text: #ffffff;
+  --update-soft: #fff1e6;
+  /* Белый текст на акценте — 5,3:1. */
+  --accent: #187a48;
+  --accent-strong: #12603a;
+  --accent-contrast: #ffffff;
+  --focus: #0a64d8;
+  --warning-bg: #fff4d6;
+  --warning-text: #6b3d00;
+  --ok-bg: #e4f4e9;
+  --ok-text: #12623a;
+  --note-bg: rgb(118 118 128 / 12%);
+  --note-text: #3a3a3c;
+  --danger: #d70015;
+  --backdrop: rgb(0 0 0 / 30%);
+  --toast-bg: #1c1c1e;
+  --toast-text: #ffffff;
+  /* Цвета БЖУ — системные оранжевый, жёлтый и синий, как у колец «Активности». */
+  --chart-protein: #ff9500;
+  --chart-fat: #f5b400;
+  --chart-carbs: #007aff;
+  --shadow: none;
+  --shadow-float: 0 8px 32px rgb(0 0 0 / 12%);
+  --glass-filter: blur(24px) saturate(180%);
+  /* Концентрические радиусы: поле в карточке — 26 минус отступ 16. */
+  --radius-card: 26px;
+  --radius-ctl: 10px;
+  --radius-pill: 999px;
+  --weight-heavy: 600;
+  --weight-bold: 600;
+  --weight-medium: 500;
+  /* Скруглённые цифры, как в «Здоровье» и «Фитнесе». Без шрифта Apple — обычный системный. */
+  --font-num: ui-rounded, 'SF Pro Rounded', var(--font);
+  --tabbar-height: 64px;
+}
+
+/* ===== Стекло, тёмная схема ===== */
+@media (prefers-color-scheme: dark) {
+  :root[data-skin='frosted']:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #000000;
+    --blob-1: #000000;
+    --blob-2: #000000;
+    --blob-3: #000000;
+    --surface: #1c1c1e;
+    --surface-strong: #2c2c2e;
+    --surface-2: rgb(118 118 128 / 24%);
+    --input-bg: #1c1c1e;
+    --text: #ffffff;
+    --text-muted: #aeaeb2;
+    --border: rgb(84 84 88 / 65%);
+    --border-input: #8e8e93;
+    --outline: rgb(255 255 255 / 8%);
+    --rim-hi: rgb(255 255 255 / 30%);
+    --rim-lo: rgb(255 255 255 / 5%);
+    --rim-hi2: rgb(255 255 255 / 15%);
+    --material: rgb(30 30 32 / 72%);
+    --material-thick: rgb(36 36 38 / 92%);
+    --glass-edge: rgb(255 255 255 / 14%);
+    --sheet: #1c1c1e;
+    --update-bg: #fb923c;
+    --update-text: #1c1006;
+    --update-soft: #3a2614;
+    --accent: #5fd08f;
+    --accent-strong: #8fe0b2;
+    --accent-contrast: #06140c;
+    --focus: #64a8ff;
+    --warning-bg: #3a2e12;
+    --warning-text: #ffd39a;
+    --ok-bg: #1c3324;
+    --ok-text: #9ff0c2;
+    --note-bg: rgb(118 118 128 / 24%);
+    --note-text: #ebebf5;
+    --danger: #ff6961;
+    --backdrop: rgb(0 0 0 / 55%);
+    --toast-bg: #f2f2f7;
+    --toast-text: #000000;
+    --chart-protein: #ff9f0a;
+    --chart-fat: #ffd60a;
+    --chart-carbs: #0a84ff;
+    --shadow: none;
+    --shadow-float: 0 8px 32px rgb(0 0 0 / 50%);
+  }
+}
+
+:root[data-skin='frosted'][data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #000000;
+  --blob-1: #000000;
+  --blob-2: #000000;
+  --blob-3: #000000;
+  --surface: #1c1c1e;
+  --surface-strong: #2c2c2e;
+  --surface-2: rgb(118 118 128 / 24%);
+  --input-bg: #1c1c1e;
+  --text: #ffffff;
+  --text-muted: #aeaeb2;
+  --border: rgb(84 84 88 / 65%);
+  --border-input: #8e8e93;
+  --outline: rgb(255 255 255 / 8%);
+  --rim-hi: rgb(255 255 255 / 30%);
+  --rim-lo: rgb(255 255 255 / 5%);
+  --rim-hi2: rgb(255 255 255 / 15%);
+  --material: rgb(30 30 32 / 72%);
+  --material-thick: rgb(36 36 38 / 92%);
+  --glass-edge: rgb(255 255 255 / 14%);
+  --sheet: #1c1c1e;
+  --update-bg: #fb923c;
+  --update-text: #1c1006;
+  --update-soft: #3a2614;
+  --accent: #5fd08f;
+  --accent-strong: #8fe0b2;
+  --accent-contrast: #06140c;
+  --focus: #64a8ff;
+  --warning-bg: #3a2e12;
+  --warning-text: #ffd39a;
+  --ok-bg: #1c3324;
+  --ok-text: #9ff0c2;
+  --note-bg: rgb(118 118 128 / 24%);
+  --note-text: #ebebf5;
+  --danger: #ff6961;
+  --backdrop: rgb(0 0 0 / 55%);
+  --toast-bg: #f2f2f7;
+  --toast-text: #000000;
+  --chart-protein: #ff9f0a;
+  --chart-fat: #ffd60a;
+  --chart-carbs: #0a84ff;
+  --shadow: none;
+  --shadow-float: 0 8px 32px rgb(0 0 0 / 50%);
+}
+
 /* ===== Основа ===== */
 
 *,
@@ -363,14 +537,14 @@ h3 {
 h1 {
   font-size: var(--text-3xl);
   line-height: 1.1;
-  font-weight: 800;
+  font-weight: var(--weight-heavy);
   letter-spacing: -0.01em;
 }
 
 h2 {
   font-size: var(--text-lg);
   line-height: 1.25;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
 }
 
 a {
@@ -513,7 +687,7 @@ a {
   background: var(--surface);
   -webkit-backdrop-filter: var(--glass-filter);
   backdrop-filter: var(--glass-filter);
-  border-radius: 26px;
+  border-radius: calc(var(--radius-ctl) + var(--space-3));
   box-shadow:
     0 0 0 0.5px var(--outline),
     var(--shadow);
@@ -533,18 +707,19 @@ a {
   place-items: center;
   width: 36px;
   height: 36px;
-  border-radius: 11px;
-  background: var(--accent);
-  color: var(--accent-contrast);
+  border-radius: var(--radius-ctl);
+  /* Знак — кольцо БЖУ цветом акцента, без плитки под ним. */
+  background: transparent;
+  color: var(--accent);
 }
 
 .app-logo svg {
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
 }
 
 .app-title {
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   font-size: var(--text-lg);
 }
 
@@ -554,7 +729,7 @@ a {
   gap: var(--space-1);
   padding: var(--space-1);
   background: var(--surface-2);
-  border-radius: var(--radius-pill);
+  border-radius: calc(var(--radius-ctl) + var(--space-1));
 }
 
 .app-nav a {
@@ -564,9 +739,9 @@ a {
   gap: var(--space-2);
   min-height: 38px;
   padding: 0 var(--space-4);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-ctl);
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -578,7 +753,7 @@ a {
 .app-nav a[aria-current='page'] {
   background: var(--surface-strong);
   color: var(--text);
-  box-shadow: 0 2px 10px rgb(0 0 0 / 8%);
+  box-shadow: 0 0 0 0.5px var(--outline);
 }
 
 .app-nav-short,
@@ -617,7 +792,7 @@ a {
 .save-status {
   margin: var(--space-2) 0 0;
   color: var(--accent-strong);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .save-status:empty {
@@ -722,7 +897,7 @@ a {
 .input-number {
   font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
 }
 
 .input[aria-invalid='true'] {
@@ -734,12 +909,16 @@ a {
   font: inherit;
   cursor: pointer;
   color: var(--text);
-  background: var(--surface-strong);
+  background: var(--surface-2);
   border: 0;
+  border-radius: var(--radius-ctl);
+  box-shadow: inset 0 0 0 1px var(--border);
+  transition: background-color 150ms ease-out;
+}
+
+/* Кнопка из одной иконки остаётся круглой. */
+.button-icon {
   border-radius: var(--radius-pill);
-  box-shadow:
-    0 0 0 0.5px var(--outline),
-    0 2px 8px rgb(0 0 0 / 6%);
 }
 
 .button {
@@ -749,14 +928,14 @@ a {
   gap: var(--space-2);
   min-height: 44px;
   padding: 0 var(--space-5);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   text-decoration: none;
   white-space: nowrap;
 }
 
 .button:hover:not(:disabled),
 .button-icon:hover:not(:disabled) {
-  background: var(--surface-2);
+  background: color-mix(in srgb, var(--surface-2), var(--text) 6%);
 }
 
 .button:disabled,
@@ -768,9 +947,7 @@ a {
 .button-primary {
   background: var(--accent);
   color: var(--accent-contrast);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 30%),
-    0 6px 18px rgb(0 0 0 / 12%);
+  box-shadow: none;
 }
 
 .button-primary:hover:not(:disabled) {
@@ -830,7 +1007,7 @@ a {
 
 .field > span:first-child,
 .field > label:first-child {
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .field-grid {
@@ -961,11 +1138,11 @@ a {
   margin-bottom: var(--space-3);
   padding: 0 var(--space-4);
   color: var(--text-muted);
-  background: var(--surface);
+  background: var(--input-bg);
   -webkit-backdrop-filter: var(--glass-filter);
   backdrop-filter: var(--glass-filter);
   border: 1px solid var(--border-input);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-ctl);
 }
 
 .search-field:focus-within {
@@ -1002,7 +1179,7 @@ a {
   align-items: center;
   min-height: 28px;
   padding: 2px var(--space-3);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-ctl);
   background: var(--surface-2);
   color: var(--text);
   font-size: var(--text-sm);
@@ -1019,7 +1196,7 @@ a {
 .chip-accent {
   background: var(--ok-bg);
   color: var(--ok-text);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .chip-toggle {
@@ -1028,7 +1205,7 @@ a {
   border: 0;
   font: inherit;
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   cursor: pointer;
   background: var(--surface-strong);
   box-shadow: 0 0 0 0.5px var(--outline);
@@ -1053,7 +1230,7 @@ a {
   gap: var(--space-1);
   padding: var(--space-1);
   background: var(--surface-2);
-  border-radius: var(--radius-pill);
+  border-radius: calc(var(--radius-ctl) + var(--space-1));
 }
 
 .segmented-option {
@@ -1077,16 +1254,16 @@ a {
   width: 100%;
   min-height: 38px;
   padding: 0 var(--space-2);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-ctl);
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   text-align: center;
 }
 
 .segmented-option input:checked + span {
   background: var(--surface-strong);
   color: var(--text);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+  box-shadow: 0 0 0 0.5px var(--outline);
 }
 
 .segmented-option input:focus-visible + span {
@@ -1134,9 +1311,9 @@ a {
   display: inline-flex;
   align-items: center;
   flex: none;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-ctl);
   background: var(--surface-2);
-  box-shadow: 0 0 0 0.5px var(--outline);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 
 .stepper-button {
@@ -1148,7 +1325,7 @@ a {
   font: inherit;
   font-size: var(--text-xl);
   cursor: pointer;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-ctl);
 }
 
 .stepper-button:disabled {
@@ -1160,16 +1337,16 @@ a {
   min-width: 32px;
   text-align: center;
   font-family: var(--font-num);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   font-variant-numeric: tabular-nums;
 }
 
 .badge {
   display: inline-block;
   padding: 2px var(--space-2);
-  border-radius: var(--radius-pill);
+  border-radius: min(6px, var(--radius-ctl));
   font-size: var(--text-xs);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   background: var(--surface-2);
   color: var(--text-muted);
   white-space: nowrap;
@@ -1222,7 +1399,7 @@ a {
   margin: 0;
   padding: var(--space-1);
   list-style: none;
-  border-radius: 18px;
+  border-radius: var(--radius-card);
 }
 
 .action-menu-item {
@@ -1322,7 +1499,7 @@ a {
 .dish-table thead th {
   border-top: 0;
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   color: var(--text-muted);
   text-align: right;
   white-space: nowrap;
@@ -1353,7 +1530,7 @@ a {
 }
 
 .ingredient-row .cell-kcal {
-  font-weight: 700;
+  font-weight: var(--weight-bold);
 }
 
 .ingredient-row .input {
@@ -1386,7 +1563,7 @@ a {
 
 .dish-summary th {
   text-align: left;
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .row-add td {
@@ -1407,7 +1584,7 @@ a {
 .row-total td {
   border-top: 2px solid var(--border);
   font-size: var(--text-lg);
-  font-weight: 800;
+  font-weight: var(--weight-heavy);
 }
 
 .summary-weight {
@@ -1476,7 +1653,7 @@ a {
 .macro-ring-label b {
   font-family: var(--font-display);
   font-size: 2.25rem;
-  font-weight: 800;
+  font-weight: var(--weight-heavy);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1520,6 +1697,7 @@ a {
 
 .macro-chip b {
   font-family: var(--font-num);
+  font-weight: var(--weight-bold);
   font-size: var(--text-lg);
   font-variant-numeric: tabular-nums;
 }
@@ -1545,7 +1723,7 @@ a {
   margin: 0;
   font-family: var(--font-num);
   font-size: var(--text-lg);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1565,7 +1743,7 @@ a {
   right: 0;
   min-width: min(320px, calc(100vw - 32px));
   overflow: hidden;
-  border-radius: 18px;
+  border-radius: var(--radius-card);
 }
 
 .combobox-popup[hidden] {
@@ -1637,7 +1815,7 @@ a {
 
 .combobox-manual {
   color: var(--accent-strong);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   border-top: 1px solid var(--border);
 }
 
@@ -1725,7 +1903,7 @@ a {
   padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
   background: var(--toast-bg);
   color: var(--toast-text);
-  border-radius: var(--radius-pill);
+  border-radius: calc(var(--radius-ctl) + var(--space-1));
   box-shadow: var(--shadow-float);
 }
 
@@ -1761,6 +1939,21 @@ a {
   font-size: var(--text-xl);
 }
 
+.recipe-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.recipe-meta-kcal {
+  color: var(--text);
+  font-weight: var(--weight-medium);
+}
+
 .recipe-note {
   margin: 0;
   color: var(--text-muted);
@@ -1788,7 +1981,7 @@ a {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .recipe-actions > .button-primary {
+  .recipe-actions > .button:first-child {
     grid-column: 1 / -1;
   }
 
@@ -1843,10 +2036,8 @@ a {
   padding: 0 var(--space-4);
   margin-bottom: var(--space-2);
   color: var(--text-muted);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
 }
 
 .group-hint {
@@ -1909,7 +2100,7 @@ a {
 }
 
 .group-row-title {
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .group-row-hint {
@@ -1986,7 +2177,7 @@ a {
   background: var(--update-bg);
   color: var(--update-text);
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: var(--weight-heavy);
   line-height: 1;
 }
 
@@ -1995,7 +2186,7 @@ a {
 .group-row-action.button-update:hover:not(:disabled) {
   background: var(--update-bg);
   color: var(--update-text);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
 }
 
 .button-update .update-dot {
@@ -2067,7 +2258,7 @@ a {
   padding: var(--space-1) var(--space-2);
   font: inherit;
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   line-height: 1.2;
   color: var(--text-muted);
   background: transparent;
@@ -2154,7 +2345,7 @@ a {
   align-items: center;
   min-height: 44px;
   color: var(--accent-strong);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   cursor: pointer;
 }
 
@@ -2202,7 +2393,7 @@ a {
   padding: 0 var(--space-3);
   border-radius: var(--radius-pill);
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .empty-state {
@@ -2300,7 +2491,7 @@ a {
 }
 
 .product-name {
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   font-size: var(--text-lg);
   overflow-wrap: anywhere;
 }
@@ -2331,7 +2522,7 @@ a {
   border-radius: var(--radius-ctl);
   font-family: var(--font-num);
   font-size: var(--text-lg);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -2355,7 +2546,7 @@ a {
   text-align: right;
   font-family: var(--font-display);
   font-size: var(--text-2xl);
-  font-weight: 800;
+  font-weight: var(--weight-heavy);
   line-height: 1.1;
 }
 
@@ -2392,7 +2583,7 @@ a {
   background: var(--warning-bg);
   color: var(--warning-text);
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .verified-toggle.is-verified {
@@ -2425,7 +2616,7 @@ a {
 
 .sort-button {
   font: inherit;
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   color: inherit;
   background: none;
   border: 0;
@@ -2636,21 +2827,22 @@ a {
     z-index: 30;
     /* Иначе Chrome центрирует фиксированный блок по ширине содержимого. */
     justify-self: stretch;
-    left: max(var(--tabbar-gap), env(safe-area-inset-left));
-    right: max(var(--tabbar-gap), env(safe-area-inset-right));
-    bottom: max(var(--tabbar-gap), env(safe-area-inset-bottom));
+    /* Панель вкладок и итог блюда — одна сплошная панель вдоль нижнего края экрана. */
+    left: 0;
+    right: 0;
+    bottom: 0;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0;
-    height: var(--tabbar-height);
-    padding: 6px;
-    background: var(--surface);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
-    border-radius: 32px;
-    box-shadow:
-      0 0 0 0.5px var(--outline),
-      var(--shadow-float);
+    height: calc(var(--tabbar-height) + env(safe-area-inset-bottom));
+    padding: var(--space-1) max(var(--space-1), env(safe-area-inset-right))
+      max(var(--space-1), env(safe-area-inset-bottom))
+      max(var(--space-1), env(safe-area-inset-left));
+    background: var(--surface-strong);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-radius: 0;
+    box-shadow: inset 0 1px 0 var(--border);
   }
 
   .app-nav a {
@@ -2659,8 +2851,8 @@ a {
     gap: 2px;
     min-height: 0;
     padding: 0 var(--space-1);
-    border-radius: 26px;
-    font-size: 0.7rem;
+    border-radius: var(--radius-ctl);
+    font-size: 0.75rem;
     color: var(--text-muted);
   }
 
@@ -2705,7 +2897,7 @@ a {
 
   .app-main {
     padding: var(--space-4) max(var(--space-4), env(safe-area-inset-right))
-      calc(var(--tabbar-height) + var(--tabbar-gap) + 140px + env(safe-area-inset-bottom))
+      calc(var(--tabbar-height) + 120px + env(safe-area-inset-bottom))
       max(var(--space-4), env(safe-area-inset-left));
   }
 
@@ -2718,7 +2910,7 @@ a {
   }
 
   .toast-region {
-    bottom: calc(var(--tabbar-height) + 2 * var(--tabbar-gap) + 96px + env(safe-area-inset-bottom));
+    bottom: calc(var(--tabbar-height) + 96px + env(safe-area-inset-bottom));
   }
 
   .field-grid {
@@ -2843,13 +3035,13 @@ a {
     text-align: left;
     white-space: normal;
     font-size: var(--text-lg);
-    font-weight: 700;
+    font-weight: var(--weight-bold);
   }
 
   .dish-table .dish-summary th {
     grid-column: 1 / -1;
     font-size: var(--text-lg);
-    font-weight: 700;
+    font-weight: var(--weight-bold);
   }
 
   /* Поле веса на телефоне: подпись слева, крупное число справа, «г» после числа. */
@@ -2895,7 +3087,7 @@ a {
   /* Карточка ингредиента: название и «⋯»; вес и калории; три плашки БЖУ. */
   .dish-table .ingredient-row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    row-gap: 14px;
+    row-gap: var(--space-3);
   }
 
   .dish-table .cell-name,
@@ -2919,7 +3111,7 @@ a {
     border-color: transparent;
     background: transparent;
     font-size: var(--text-xl);
-    font-weight: 700;
+    font-weight: var(--weight-bold);
     text-overflow: ellipsis;
   }
 
@@ -2944,7 +3136,7 @@ a {
     text-align: right;
     font-family: var(--font-display);
     font-size: 1.75rem;
-    font-weight: 800;
+    font-weight: var(--weight-heavy);
     line-height: 1.05;
   }
 
@@ -2961,12 +3153,11 @@ a {
     color: var(--text-muted);
   }
 
-  /* Плашки БЖУ: цветная точка, подпись, значение в граммах. */
+  /* БЖУ ингредиента — одна строка мелким шрифтом: цветная точка, подпись, граммы. */
   .dish-table .ingredient-row :is(.cell-protein, .cell-fat, .cell-carbs) {
     white-space: nowrap;
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-ctl);
-    background: var(--surface-2);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
   }
 
   .dish-table .ingredient-row :is(.cell-protein, .cell-fat, .cell-carbs)::before {
@@ -3045,19 +3236,19 @@ a {
   .dish-table .row-total {
     position: fixed;
     z-index: 29;
-    left: max(var(--tabbar-gap), env(safe-area-inset-left));
-    right: max(var(--tabbar-gap), env(safe-area-inset-right));
-    bottom: calc(var(--tabbar-height) + 2 * var(--tabbar-gap) + env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom));
     grid-template-columns: auto repeat(3, minmax(0, 1fr));
     grid-template-rows: auto auto;
-    gap: 6px var(--space-2);
+    gap: var(--space-2);
     align-items: center;
-    padding: var(--space-3) var(--space-4);
+    padding: var(--space-3) max(var(--space-4), env(safe-area-inset-right)) var(--space-3)
+      max(var(--space-4), env(safe-area-inset-left));
     background: var(--surface-strong);
-    border-radius: 26px;
-    box-shadow:
-      0 0 0 0.5px var(--outline),
-      var(--shadow-float);
+    border-radius: 0;
+    /* Линия сверху отделяет панель от содержимого. Линию между итогом и вкладками рисует панель вкладок. */
+    box-shadow: inset 0 1px 0 var(--border);
   }
 
   .dish-table .row-total th {
@@ -3108,7 +3299,7 @@ a {
     grid-row: 1;
     font-family: var(--font-display);
     font-size: 1.875rem;
-    font-weight: 800;
+    font-weight: var(--weight-heavy);
     line-height: 1;
   }
 
@@ -3161,7 +3352,6 @@ a {
     --fluid: clamp(0px, 100vw - 320px, 70px);
     /* Поля экрана и отступы карточек: 12 px при 320, 16 px при 390. */
     --gutter: calc(12px + var(--fluid) * 4 / 70);
-    --tabbar-gap: calc(8px + var(--fluid) * 4 / 70);
   }
 
   /* Корень 16 px при 320 и 17 px при 390: вся шкала в rem уменьшается вместе с ним. */
@@ -3322,6 +3512,336 @@ a {
   }
 }
 
+/* ===== Стекло: другой вид элементов =====
+   Раскладка та же, что у основного стиля. Правила как у Apple: содержимое — на непрозрачных
+   ячейках без тени, стекло с бликом по верхнему краю — только у плавающих слоёв.
+   Кнопки — капсулы, радиусы концентрические, цифры — скруглённым шрифтом. */
+
+/* Содержимое: непрозрачные ячейки без размытия, блика и тени. */
+:root[data-skin='frosted']
+  :is(.card, .table-wrap, .empty-state, .web-result, .banner, .group-list) {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+:root[data-skin='frosted']
+  :is(.card, .table-wrap, .empty-state, .web-result, .banner, .group-list)::before {
+  content: none;
+}
+
+/* Плавающие слои: материал стекла, светлая линия по верхнему краю и мягкая тень. */
+:root[data-skin='frosted'] .app-header {
+  background: var(--material);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+  border-radius: var(--radius-card);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 0.5px var(--outline),
+    var(--shadow-float);
+}
+
+:root[data-skin='frosted'] :is(.modal, .combobox-popup, .action-menu-list) {
+  background: var(--material-thick);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 0.5px var(--outline),
+    var(--shadow-float);
+}
+
+:root[data-skin='frosted'] :is(.modal, .combobox-popup)::before {
+  content: none;
+}
+
+:root[data-skin='frosted'] .app-logo {
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+:root[data-skin='frosted'] .app-logo svg {
+  width: 26px;
+  height: 26px;
+}
+
+/* Большой заголовок жирный, как Large Title. Разрядку SF подбирает сам. */
+:root[data-skin='frosted'] h1 {
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* Подписи групп — как в «Настройках»: прописные 13 px, обычный вес, без разрядки. */
+:root[data-skin='frosted'] .group-label {
+  font-size: var(--text-xs);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+/* Капсулы: кнопки, вкладки, сегменты, поиск. */
+:root[data-skin='frosted']
+  :is(
+    .app-nav,
+    .app-nav a,
+    .button,
+    .button-icon,
+    .search-field,
+    .chip,
+    .segmented,
+    .segmented-option span,
+    .stepper,
+    .stepper-button,
+    .toast
+  ) {
+  border-radius: var(--radius-pill);
+}
+
+:root[data-skin='frosted'] .app-nav a[aria-current='page'],
+:root[data-skin='frosted'] .segmented-option input:checked + span {
+  background: var(--surface-strong);
+  box-shadow:
+    0 3px 8px rgb(0 0 0 / 12%),
+    0 3px 1px rgb(0 0 0 / 4%);
+}
+
+/* Сегменты высотой 32, как UISegmentedControl. */
+:root[data-skin='frosted'] .segmented-option span {
+  min-height: 32px;
+}
+
+/* Вторичная кнопка: серая заливка без тени, текст цветом акцента. */
+:root[data-skin='frosted'] :is(.button, .button-icon) {
+  background: var(--surface-2);
+  color: var(--accent-strong);
+  box-shadow: none;
+  transition:
+    background-color 150ms ease-out,
+    transform 150ms ease-out;
+}
+
+:root[data-skin='frosted'] :is(.button, .button-icon):hover:not(:disabled) {
+  background: color-mix(in srgb, var(--surface-2), var(--text) 8%);
+}
+
+/* Кнопки-иконки «⋯», «×» и «Очистить» — цветом текста, как системные кнопки-иконки. */
+:root[data-skin='frosted'] :is(.button-icon, .button-clear) {
+  color: var(--text);
+}
+
+:root[data-skin='frosted'] .button-primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+:root[data-skin='frosted'] .button-primary:hover:not(:disabled) {
+  background: var(--accent-strong);
+}
+
+:root[data-skin='frosted'] :is(.button-danger, .button-delete) {
+  color: var(--danger);
+}
+
+:root[data-skin='frosted'] .button-danger-solid {
+  background: var(--danger);
+  color: var(--bg);
+}
+
+:root[data-skin='frosted'] :is(.button-link, .button-delete, .toast .button, .toast .button-icon) {
+  background: transparent;
+}
+
+:root[data-skin='frosted'] :is(.toast .button, .toast .button-icon) {
+  color: inherit;
+}
+
+/* Нажатие — лёгкое уменьшение, как у системных кнопок. */
+:root[data-skin='frosted'] .app-nav a {
+  transition: transform 150ms ease-out;
+}
+
+:root[data-skin='frosted'] :is(.button, .button-icon, .app-nav a):active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-skin='frosted'] :is(.button, .button-icon, .app-nav a):active:not(:disabled) {
+    transform: none;
+  }
+}
+
+:root[data-skin='frosted'] .stepper {
+  box-shadow: none;
+}
+
+:root[data-skin='frosted'] .stepper-button {
+  color: var(--accent-strong);
+}
+
+/* Скруглённые цифры там, где у основного стиля цифры набраны шрифтом заголовков. */
+:root[data-skin='frosted'] .macro-ring-label b {
+  font-family: var(--font-num);
+}
+
+/* Кольцо БЖУ как кольца «Активности»: скруглённые концы и просветы между долями.
+   Скругление выступает за конец дуги на половину толщины (6), просвет — ещё 4.
+   Короткая доля (is-short) без скругления: иначе точка шире самой доли наезжает на соседнюю.
+   Доля на всё кольцо (is-full) замкнута, без просвета.
+   Браузер без calc() в stroke-dasharray рисует обычное кольцо из атрибутов. */
+@supports (stroke-dasharray: max(1, calc(2 - 1)) 1) {
+  :root[data-skin='frosted'] .macro-arc {
+    stroke-linecap: round;
+    stroke-dasharray: max(0.01, calc(var(--len) - 16)) 999;
+    stroke-dashoffset: calc(-1 * (var(--off) + 8));
+  }
+
+  :root[data-skin='frosted'] .macro-arc.is-short {
+    stroke-linecap: butt;
+    stroke-dasharray: max(0.01, calc(var(--len) - 4)) 999;
+    stroke-dashoffset: calc(-1 * (var(--off) + 2));
+  }
+
+  :root[data-skin='frosted'] .macro-arc.is-full {
+    stroke-linecap: butt;
+    stroke-dasharray: none;
+  }
+}
+
+/* Разделители в группах начинаются от текста, а не от края ячейки. */
+:root[data-skin='frosted'] :is(.group-list > * + *, .source-list > li + li) {
+  border-top: 0;
+  background-image: linear-gradient(var(--border), var(--border));
+  background-repeat: no-repeat;
+  background-position: right top;
+  background-size: calc(100% - var(--space-4)) 1px;
+}
+
+@media (min-width: 901px) {
+  /* В таблице линия над строкой тоже начинается от названия продукта. */
+  :root[data-skin='frosted'] .dish-table tbody tr:not(.row-total) > :first-child {
+    border-top-color: transparent;
+    background-image: linear-gradient(var(--border), var(--border));
+    background-origin: border-box;
+    background-repeat: no-repeat;
+    background-position: right top;
+    background-size: calc(100% - var(--space-3)) 1px;
+  }
+}
+
+/* Отступ плавающих вкладок и итога от краёв экрана: 12 px, на узком телефоне до 8 px. */
+:root[data-skin='frosted'] {
+  --float-gap: 12px;
+}
+
+@media (max-width: 389.98px) {
+  :root[data-skin='frosted'] {
+    --float-gap: calc(8px + var(--fluid) * 4 / 70);
+  }
+}
+
+@media (max-width: 900px) {
+  /* Шапка на телефоне пустая. Без фильтра у шапки панель вкладок внутри неё
+     фиксируется к экрану, а не к шапке. */
+  :root[data-skin='frosted'] .app-header {
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+
+  /* Карточки ингредиентов — непрозрачные ячейки без тени. */
+  :root[data-skin='frosted'] .dish-table tr:not(.row-total) {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+
+  :root[data-skin='frosted'] .add-row .button {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  /* Плавающая панель вкладок, как в iOS 26. */
+  :root[data-skin='frosted'] .app-nav {
+    left: max(var(--float-gap), env(safe-area-inset-left));
+    right: max(var(--float-gap), env(safe-area-inset-right));
+    bottom: max(var(--float-gap), env(safe-area-inset-bottom));
+    height: var(--tabbar-height);
+    padding: var(--space-1);
+    background: var(--material);
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
+    box-shadow:
+      inset 0 1px 0 var(--glass-edge),
+      0 0 0 0.5px var(--outline),
+      var(--shadow-float);
+  }
+
+  :root[data-skin='frosted'] .app-nav a {
+    font-size: 0.7rem;
+  }
+
+  :root[data-skin='frosted'] .app-nav a[aria-current='page'] {
+    color: var(--accent-strong);
+    background: var(--surface-2);
+    box-shadow: none;
+  }
+
+  :root[data-skin='frosted'] .app-main {
+    padding-bottom: calc(
+      var(--tabbar-height) + var(--float-gap) + 120px + env(safe-area-inset-bottom)
+    );
+  }
+
+  :root[data-skin='frosted'] .toast-region {
+    bottom: calc(
+      var(--tabbar-height) + var(--float-gap) + var(--space-2) + 96px + env(safe-area-inset-bottom)
+    );
+  }
+
+  /* Итог — аксессуар над панелью вкладок: та же ширина и тот же материал, зазор 8. */
+  :root[data-skin='frosted'] .dish-table .row-total {
+    left: max(var(--float-gap), env(safe-area-inset-left));
+    right: max(var(--float-gap), env(safe-area-inset-right));
+    bottom: calc(
+      max(var(--float-gap), env(safe-area-inset-bottom)) + var(--tabbar-height) + var(--space-2)
+    );
+    padding: var(--space-2) var(--space-5);
+    border-radius: var(--radius-card);
+    background: var(--material);
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
+    box-shadow:
+      inset 0 1px 0 var(--glass-edge),
+      0 0 0 0.5px var(--outline),
+      var(--shadow-float);
+  }
+
+  :root[data-skin='frosted'] .dish-table :is(.ingredient-row .cell-kcal, .row-total .cell-kcal) {
+    font-family: var(--font-num);
+  }
+
+  /* Окно — лист снизу со скруглёнными верхними углами. */
+  :root[data-skin='frosted'] .modal-backdrop {
+    padding-top: calc(env(safe-area-inset-top) + var(--space-3));
+  }
+
+  :root[data-skin='frosted'] .modal {
+    border-radius: 36px 36px 0 0;
+    background: var(--sheet);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: var(--shadow-float);
+  }
+
+  :root[data-skin='frosted'] .modal-header {
+    padding-top: var(--space-4);
+    background: var(--sheet);
+  }
+}
+
 /* ===== Этикетка: другой вид элементов =====
    Раскладка у всех стилей одна и та же. Этикетка меняет только вид: без стекла,
    плотная заливка, тонкая рамка и толстая чёрная линия сверху, моноширинные цифры,
@@ -3408,6 +3928,21 @@ a {
   box-shadow: inset 0 0 0 1px var(--text);
 }
 
+/* У этикетки кнопки белые с чёрной рамкой. Тихие кнопки, ссылки и кнопки в уведомлении
+   сохраняют свою заливку. */
+:root[data-skin='label']
+  :is(.button, .button-icon):not(
+    .button-quiet,
+    .button-link,
+    .action-menu-trigger,
+    .button-primary,
+    .button-danger-solid,
+    .button-delete,
+    .toast *
+  ) {
+  background: var(--surface-strong);
+}
+
 :root[data-skin='label'] .button-primary {
   background: var(--text);
   color: var(--bg);
@@ -3421,6 +3956,12 @@ a {
 
 :root[data-skin='label'] .search-field {
   border-color: var(--text);
+}
+
+:root[data-skin='label'] .group-label {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 :root[data-skin='label'] .card > h2,
@@ -3474,9 +4015,8 @@ a {
 
   :root[data-skin='label'] .app-nav {
     background: var(--surface);
-    box-shadow:
-      inset 0 0 0 2px var(--text),
-      var(--shadow-float);
+    border-radius: 0;
+    box-shadow: inset 0 2px 0 var(--text);
   }
 
   :root[data-skin='label'] .dish-table tr {
@@ -3486,9 +4026,8 @@ a {
   }
 
   :root[data-skin='label'] .dish-table .row-total {
-    box-shadow:
-      inset 0 0 0 2px var(--text),
-      var(--shadow-float);
+    border-radius: 0;
+    box-shadow: inset 0 2px 0 var(--text);
   }
 
   :root[data-skin='label'] .dish-table .row-add,
@@ -3498,11 +4037,6 @@ a {
 
   :root[data-skin='label'] .add-row .button {
     box-shadow: inset 0 0 0 1px var(--text);
-  }
-
-  :root[data-skin='label'] .dish-table .ingredient-row :is(.cell-protein, .cell-fat, .cell-carbs) {
-    background: transparent;
-    box-shadow: inset 0 0 0 1px var(--border);
   }
 }
 
@@ -3555,6 +4089,49 @@ a {
   .dish-table .row-cooked-hint,
   .catalog-wrap {
     background: transparent;
+  }
+}
+
+/* Стекло на телефоне задаёт полупрозрачную заливку более точным селектором: плотную заливку
+   для тех же случаев повторяем отдельно. */
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-skin='frosted']
+    :is(
+      .app-header,
+      .app-nav,
+      .search-field,
+      .add-row .button,
+      .dish-table .row-total,
+      .modal,
+      .combobox-popup,
+      .action-menu-list
+    ) {
+    background: var(--surface-strong);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* На телефоне шапка пустая и остаётся прозрачной. */
+@media (max-width: 900px) {
+  :root[data-skin='frosted'] .app-header.app-header {
+    background: transparent;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root[data-skin='frosted']
+    :is(
+      .app-header,
+      .app-nav,
+      .search-field,
+      .add-row .button,
+      .dish-table .row-total,
+      .modal,
+      .combobox-popup,
+      .action-menu-list
+    ) {
+    background: var(--surface-strong);
   }
 }
 

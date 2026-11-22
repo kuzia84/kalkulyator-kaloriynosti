@@ -12,10 +12,10 @@ export function applyTheme(theme: Theme): void {
   else root.setAttribute('data-theme', theme);
 }
 
-/** Ставит оформление на <html>. «Стекло» — без атрибута: это оформление по умолчанию. */
+/** Ставит оформление на <html>. «Обычный» — без атрибута: это оформление по умолчанию. */
 export function applySkin(skin: Skin): void {
   const root = document.documentElement;
-  if (skin === 'glass') root.removeAttribute('data-skin');
+  if (skin === 'plain') root.removeAttribute('data-skin');
   else root.setAttribute('data-skin', skin);
 }
 

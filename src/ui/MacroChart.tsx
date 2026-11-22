@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { formatNumber, formatNutrient, macroEnergyShare, type Nutrients } from '../calc';
 
 const PARTS = [
@@ -8,6 +9,8 @@ const PARTS = [
 
 const R = 40;
 const C = 2 * Math.PI * R;
+/** Короче этой длины дуга со скруглёнными концами и просветами не помещается в свою долю. */
+const ROUND_MIN = 16;
 
 /**
  * Пищевая ценность на 100 г: в центре кольца калорийность, кольцо — доли белков, жиров
@@ -27,9 +30,16 @@ export function MacroChart({ nutrients }: { nutrients: Nutrients | null }) {
           <circle cx="50" cy="50" r={R} fill="none" stroke="var(--surface-2)" strokeWidth="12" />
           {PARTS.map(({ key, color }) => {
             const len = (share[key] / 100) * C;
-            const el = (
+            const start = offset;
+            offset += len;
+            // Пустая доля не рисуется: у стекла дуга со скруглёнными концами дала бы точку.
+            if (len <= 0) return null;
+            return (
               <circle
                 key={key}
+                className={`macro-arc${len >= C - 0.01 ? ' is-full' : len < ROUND_MIN ? ' is-short' : ''}`}
+                // Длина и начало дуги для CSS: стекло рисует по ним дуги с просветами.
+                style={{ '--len': len, '--off': start } as CSSProperties}
                 cx="50"
                 cy="50"
                 r={R}
@@ -37,12 +47,10 @@ export function MacroChart({ nutrients }: { nutrients: Nutrients | null }) {
                 stroke={color}
                 strokeWidth="12"
                 strokeDasharray={`${len} ${C - len}`}
-                strokeDashoffset={-offset}
+                strokeDashoffset={-start}
                 transform="rotate(-90 50 50)"
               />
             );
-            offset += len;
-            return el;
           })}
         </svg>
         <p className="macro-ring-label">
