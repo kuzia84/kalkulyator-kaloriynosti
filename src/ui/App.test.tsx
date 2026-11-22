@@ -228,8 +228,8 @@ describe('настройки', () => {
     render(<App />);
     const style = await screen.findByRole('radiogroup', { name: 'Стиль' });
     const scheme = screen.getByRole('radiogroup', { name: 'Цветовая схема' });
-    // По умолчанию — «Стекло»: у <html> нет атрибута data-skin.
-    expect(within(style).getByRole('radio', { name: 'Стекло' })).toBeChecked();
+    // По умолчанию — «Обычный»: у <html> нет атрибута data-skin.
+    expect(within(style).getByRole('radio', { name: 'Обычный' })).toBeChecked();
     expect(document.documentElement).not.toHaveAttribute('data-skin');
 
     await user.click(within(style).getByRole('radio', { name: 'Этикетка' }));
@@ -244,6 +244,10 @@ describe('настройки', () => {
     });
 
     await user.click(within(style).getByRole('radio', { name: 'Стекло' }));
+    expect(document.documentElement).toHaveAttribute('data-skin', 'frosted');
+    expect(localStorage.getItem('kk-skin')).toBe('frosted');
+
+    await user.click(within(style).getByRole('radio', { name: 'Обычный' }));
     expect(document.documentElement).not.toHaveAttribute('data-skin');
     // Цветовая схема не сбросилась при смене стиля.
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark');

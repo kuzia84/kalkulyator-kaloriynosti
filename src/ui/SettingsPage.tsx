@@ -23,7 +23,11 @@ const SOURCE_INFO: Record<ExternalSource, { title: string; text: string }> = {
 };
 
 const SKIN_INFO: Record<Skin, { title: string; text: string }> = {
-  glass: { title: 'Стекло', text: 'Полупрозрачные панели на мягком цветном фоне.' },
+  plain: { title: 'Обычный', text: 'Ровный фон, зелёный акцент и цветная диаграмма БЖУ.' },
+  frosted: {
+    title: 'Стекло',
+    text: 'Как в iOS и macOS: стеклянные панели над непрозрачным содержимым.',
+  },
   label: { title: 'Этикетка', text: 'Чёрно-белое оформление, как этикетка с пищевой ценностью.' },
 };
 

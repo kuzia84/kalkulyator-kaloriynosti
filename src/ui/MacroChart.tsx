@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { formatNumber, formatNutrient, macroEnergyShare, type Nutrients } from '../calc';
 
 const PARTS = [
@@ -27,9 +28,16 @@ export function MacroChart({ nutrients }: { nutrients: Nutrients | null }) {
           <circle cx="50" cy="50" r={R} fill="none" stroke="var(--surface-2)" strokeWidth="12" />
           {PARTS.map(({ key, color }) => {
             const len = (share[key] / 100) * C;
-            const el = (
+            const start = offset;
+            offset += len;
+            // Пустая доля не рисуется: у стекла дуга со скруглёнными концами дала бы точку.
+            if (len <= 0) return null;
+            return (
               <circle
                 key={key}
+                className="macro-arc"
+                // Длина и начало дуги для CSS: стекло рисует по ним дуги с просветами.
+                style={{ '--len': len, '--off': start } as CSSProperties}
                 cx="50"
                 cy="50"
                 r={R}
@@ -37,12 +45,10 @@ export function MacroChart({ nutrients }: { nutrients: Nutrients | null }) {
                 stroke={color}
                 strokeWidth="12"
                 strokeDasharray={`${len} ${C - len}`}
-                strokeDashoffset={-offset}
+                strokeDashoffset={-start}
                 transform="rotate(-90 50 50)"
               />
             );
-            offset += len;
-            return el;
           })}
         </svg>
         <p className="macro-ring-label">

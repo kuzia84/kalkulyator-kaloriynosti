@@ -35,6 +35,25 @@ describe('этикетка', () => {
   });
 });
 
+describe('стекло', () => {
+  it('системная и выбранная тёмная схема стекла задают одинаковые токены', () => {
+    const system = tokens(":root[data-skin='frosted']:not([data-theme='light'])");
+    const chosen = tokens(":root[data-skin='frosted'][data-theme='dark']");
+    expect(chosen).toEqual(system);
+  });
+
+  it('стекло переопределяет каждый цвет основного стиля, а его тёмная схема — каждый свой цвет', () => {
+    const plain = tokens(':root {');
+    const glass = tokens(":root[data-skin='frosted'] {");
+    const glassDark = tokens(":root[data-skin='frosted'][data-theme='dark']");
+    const isColor = (v: string) => /^#|rgb/.test(v);
+    for (const key of Object.keys(plain).filter((k) => isColor(plain[k]!)))
+      expect(glass, key).toHaveProperty(key);
+    for (const key of Object.keys(glass).filter((k) => isColor(glass[k]!)))
+      expect(glassDark, key).toHaveProperty(key);
+  });
+});
+
 describe('тёмная тема', () => {
   it('системная и выбранная в настройках тёмная тема задают одинаковые токены', () => {
     const system = tokens(":root:not([data-theme='light'])");

@@ -9,7 +9,7 @@ import {
 
 const SOURCES: ExternalSource[] = ['off', 'usda'];
 const THEMES: Theme[] = ['system', 'light', 'dark'];
-const SKINS: Skin[] = ['glass', 'label'];
+const SKINS: Skin[] = ['plain', 'frosted', 'label'];
 
 export const SUGGESTIONS_MIN = 5;
 export const SUGGESTIONS_MAX = 50;

@@ -58,8 +58,13 @@ export interface Dish {
 
 export type ExternalSource = 'off' | 'usda';
 export type Theme = 'system' | 'light' | 'dark';
-/** Оформление: «Стекло» — основное, «Этикетка» — монохромное. Цветовая схема задаётся отдельно (`Theme`). */
-export type Skin = 'glass' | 'label';
+/**
+ * Оформление: «Обычный» — основное, «Стекло» — полупрозрачные панели на цветном поле,
+ * «Этикетка» — монохромное. Цветовая схема задаётся отдельно (`Theme`).
+ * Раньше основное оформление называлось 'glass' и выглядело как нынешнее «Стекло».
+ * Сохранённое 'glass' теперь неизвестно и при чтении заменяется на 'plain'.
+ */
+export type Skin = 'plain' | 'frosted' | 'label';
 
 export interface Settings {
   /** Сколько подсказок загружать в список (видно 5, остальные — прокруткой). */
@@ -78,7 +83,7 @@ export const DEFAULT_SETTINGS: Settings = {
   enabledSources: ['off', 'usda'],
   usdaApiKey: '',
   theme: 'system',
-  skin: 'glass',
+  skin: 'plain',
 };
 
 export interface SettingsRecord extends Settings {

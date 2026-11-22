@@ -227,19 +227,17 @@ function RecipeList({
             return (
               <li key={r.id} className="card recipe-item">
                 <h2>{r.name}</h2>
-                <p className="chips">
-                  {info.kcal ? <span className="chip chip-accent">{info.kcal}</span> : null}
-                  <span className="chip">{info.count}</span>
-                  <span className="chip">{info.weight}</span>
-                  <span className="chip chip-quiet">
-                    Изменён {dateFormatter.format(r.updatedAt)}
-                  </span>
+                <p className="recipe-meta">
+                  {info.kcal ? <span className="recipe-meta-kcal">{info.kcal}</span> : null}
+                  <span>{info.count}</span>
+                  <span>{info.weight}</span>
+                  <span>Изменён {dateFormatter.format(r.updatedAt)}</span>
                 </p>
                 {r.note ? <p className="recipe-note">{r.note}</p> : null}
                 <div className="recipe-actions">
                   <button
                     type="button"
-                    className="button button-primary"
+                    className="button"
                     onClick={() => (hasContent(current) ? setConfirmOpen(r) : open(r))}
                     aria-label={`В калькулятор: рецепт «${r.name}»`}
                   >
