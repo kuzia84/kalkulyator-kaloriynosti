@@ -124,6 +124,65 @@ test('нет горизонтальной прокрутки', async ({ page }) 
   expect(scroll).toBeLessThanOrEqual(width);
 });
 
+test('справочник на компьютере: ячейки строки одной высоты, линии без лесенки', async ({
+  page,
+}) => {
+  test.skip((page.viewportSize()?.width ?? 0) < 1024, 'таблица справочника — с 1024 px');
+  // Самая высокая строка: штрихкод и пометка «не сходится с БЖУ». Название — первым по алфавиту.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('kalkulyator-kaloriynosti');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const tx = open.result.transaction('products', 'readwrite');
+          tx.objectStore('products').put({
+            id: 'e2e-tall-row',
+            name: 'Ааа тестовый продукт',
+            nameNorm: 'ааа тестовый продукт',
+            barcode: '4600000000017',
+            source: 'user',
+            kcal: 500,
+            protein: 1,
+            fat: 1,
+            carbs: 1,
+            rank: 0,
+            verified: false,
+          });
+          tx.oncomplete = () => {
+            open.result.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error);
+        };
+      }),
+  );
+  await page.goto('./#/moderation');
+  await expect(page.locator('.catalog-table tbody tr').first()).toBeVisible();
+  const tall = page.locator('.catalog-table tbody tr').first();
+  await expect(tall).toHaveClass(/is-suspicious/);
+  await expect(tall).toContainText('4600000000017');
+  for (const skin of [null, 'frosted', 'label']) {
+    const misaligned = await page.evaluate((s) => {
+      const root = document.documentElement;
+      if (s) root.setAttribute('data-skin', s);
+      else root.removeAttribute('data-skin');
+      const rows = Array.from(document.querySelectorAll('.catalog-table tbody tr')).slice(0, 20);
+      return rows.filter((tr) => {
+        const cells = Array.from(tr.children);
+        const edges = cells.map((c) => {
+          const r = c.getBoundingClientRect();
+          return `${Math.round(r.top)}:${Math.round(r.bottom)}`;
+        });
+        return (
+          new Set(edges).size > 1 || cells.some((c) => getComputedStyle(c).display !== 'table-cell')
+        );
+      }).length;
+    }, skin);
+    expect(misaligned, `стиль ${skin ?? 'plain'}`).toBe(0);
+  }
+});
+
 for (const theme of ['light', 'dark'] as const) {
   test(`рамка поля ввода заметна (${theme}): контраст к фону страницы и карточки не меньше 3:1`, async ({
     page,

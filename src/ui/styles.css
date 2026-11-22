@@ -2695,8 +2695,11 @@ a {
     box-shadow: inset 4px 0 0 var(--warning-text);
   }
 
+  /* У карточки название и действия — flex. В таблице они снова ячейки: иначе браузер
+     оборачивает их в анонимные ячейки, и высота и линии строки расходятся лесенкой. */
   .catalog-table th,
-  .catalog-table td {
+  .catalog-table td,
+  .catalog-table :is(.cell-title, .cell-actions) {
     display: table-cell;
     padding: var(--space-2) var(--space-3);
     border-top: 1px solid var(--border);
@@ -2728,6 +2731,11 @@ a {
     display: block;
   }
 
+  /* В ячейке нет flex и gap: интервал между названием, штрихкодом и метой — отступом. */
+  .catalog-table .cell-title > span + span {
+    margin-top: 2px;
+  }
+
   .catalog-table .cell-title > .suspicious-note {
     display: flex;
   }
@@ -2751,6 +2759,10 @@ a {
   .catalog-table .cell-actions {
     text-align: right;
     white-space: nowrap;
+  }
+
+  .catalog-table .cell-actions .button {
+    vertical-align: middle;
   }
 
   .catalog-table .cell-actions .button + .button {
