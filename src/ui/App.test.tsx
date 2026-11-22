@@ -50,7 +50,8 @@ describe('калькулятор', () => {
   it('подсказки, выбор с клавиатуры, вес, итоги и уварка', async () => {
     const user = await renderApp();
     const name = screen.getByRole('combobox', { name: 'Ингредиент 1' });
-    await user.type(name, 'греч');
+    // «Гречневая крупа продел» тоже начинается с «греч»: запрос уточнён до ядрицы.
+    await user.type(name, 'гречневая крупа я');
     const option = await screen.findByRole('option', { name: /Гречневая крупа ядрица/ });
     expect(option).toBeVisible();
     await user.keyboard('{ArrowDown}{Enter}');

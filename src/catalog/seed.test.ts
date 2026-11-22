@@ -14,6 +14,20 @@ describe('стартовый набор', () => {
     expect(new Set(SEED.map((p) => normalizeName(p.name))).size).toBe(SEED.length);
   });
 
+  it('в наборе не меньше 190 продуктов', () => {
+    expect(SEED.length).toBeGreaterThanOrEqual(190);
+  });
+
+  it('источник — Скурихин или USDA, у записи USDA есть externalId usda:<fdcId>', () => {
+    for (const p of SEED) {
+      expect(['skurikhin', 'usda'], p.name).toContain(p.source);
+      if (p.source === 'usda') expect(p.externalId, p.name).toMatch(/^usda:\d+$/);
+      else expect(p.externalId, p.name).toBeUndefined();
+    }
+    const ids = SEED.flatMap((p) => (p.externalId ? [p.externalId] : []));
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   it('значения неотрицательны, БЖУ не больше 100 г', () => {
     for (const p of SEED) {
       expect(p.kcal, p.name).toBeGreaterThanOrEqual(0);

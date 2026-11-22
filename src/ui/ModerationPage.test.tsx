@@ -27,7 +27,7 @@ describe('страница модерации', () => {
   it('поиск по вхождению в название', async () => {
     const user = await renderPage();
     await user.type(screen.getByLabelText('Поиск'), 'крупа');
-    expect(screen.getByText(/Найдено: 6 из/)).toBeInTheDocument();
+    expect(screen.getByText(/Найдено: 9 из/)).toBeInTheDocument();
   });
 
   it('удаление спрашивает подтверждение и отменяется', async () => {
