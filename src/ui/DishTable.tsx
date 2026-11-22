@@ -126,9 +126,14 @@ export function DishTable({
         <tr className="row-total">
           <th scope="row">
             <span className="total-label">
-              Итого
+              <span className="total-word">Итого</span>
+              {/* На телефоне плавающий итог подписан весом готового блюда, если он задан. */}
+              {showsCooked ? <span className="total-word-cooked">Готовое</span> : null}
               {hasWeight ? (
-                <span className="summary-weight"> · {formatWeight(total.weight)} г</span>
+                <span className="summary-weight">
+                  {' '}
+                  · {formatWeight(showsCooked && cooked != null ? cooked : total.weight)} г
+                </span>
               ) : null}
             </span>
             {/* Полоса долей БЖУ в калорийности: на телефоне она стоит в плавающем итоге. */}
