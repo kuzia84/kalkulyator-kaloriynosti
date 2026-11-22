@@ -128,8 +128,40 @@ test('справочник на компьютере: ячейки строки 
   page,
 }) => {
   test.skip((page.viewportSize()?.width ?? 0) < 1024, 'таблица справочника — с 1024 px');
+  // Самая высокая строка: штрихкод и пометка «не сходится с БЖУ». Название — первым по алфавиту.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('kalkulyator-kaloriynosti');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const tx = open.result.transaction('products', 'readwrite');
+          tx.objectStore('products').put({
+            id: 'e2e-tall-row',
+            name: 'Ааа тестовый продукт',
+            nameNorm: 'ааа тестовый продукт',
+            barcode: '4600000000017',
+            source: 'user',
+            kcal: 500,
+            protein: 1,
+            fat: 1,
+            carbs: 1,
+            rank: 0,
+            verified: false,
+          });
+          tx.oncomplete = () => {
+            open.result.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error);
+        };
+      }),
+  );
   await page.goto('./#/moderation');
   await expect(page.locator('.catalog-table tbody tr').first()).toBeVisible();
+  const tall = page.locator('.catalog-table tbody tr').first();
+  await expect(tall).toHaveClass(/is-suspicious/);
+  await expect(tall).toContainText('4600000000017');
   for (const skin of [null, 'frosted', 'label']) {
     const misaligned = await page.evaluate((s) => {
       const root = document.documentElement;

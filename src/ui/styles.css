@@ -2731,6 +2731,11 @@ a {
     display: block;
   }
 
+  /* В ячейке нет flex и gap: интервал между названием, штрихкодом и метой — отступом. */
+  .catalog-table .cell-title > span + span {
+    margin-top: 2px;
+  }
+
   .catalog-table .cell-title > .suspicious-note {
     display: flex;
   }
