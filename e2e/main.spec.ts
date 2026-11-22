@@ -124,6 +124,33 @@ test('нет горизонтальной прокрутки', async ({ page }) 
   expect(scroll).toBeLessThanOrEqual(width);
 });
 
+test('справочник на компьютере: ячейки строки одной высоты, линии без лесенки', async ({
+  page,
+}) => {
+  test.skip((page.viewportSize()?.width ?? 0) < 1024, 'таблица справочника — с 1024 px');
+  await page.goto('./#/moderation');
+  await expect(page.locator('.catalog-table tbody tr').first()).toBeVisible();
+  for (const skin of [null, 'frosted', 'label']) {
+    const misaligned = await page.evaluate((s) => {
+      const root = document.documentElement;
+      if (s) root.setAttribute('data-skin', s);
+      else root.removeAttribute('data-skin');
+      const rows = Array.from(document.querySelectorAll('.catalog-table tbody tr')).slice(0, 20);
+      return rows.filter((tr) => {
+        const cells = Array.from(tr.children);
+        const edges = cells.map((c) => {
+          const r = c.getBoundingClientRect();
+          return `${Math.round(r.top)}:${Math.round(r.bottom)}`;
+        });
+        return (
+          new Set(edges).size > 1 || cells.some((c) => getComputedStyle(c).display !== 'table-cell')
+        );
+      }).length;
+    }, skin);
+    expect(misaligned, `стиль ${skin ?? 'plain'}`).toBe(0);
+  }
+});
+
 for (const theme of ['light', 'dark'] as const) {
   test(`рамка поля ввода заметна (${theme}): контраст к фону страницы и карточки не меньше 3:1`, async ({
     page,
