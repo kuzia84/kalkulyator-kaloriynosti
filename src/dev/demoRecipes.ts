@@ -104,7 +104,7 @@ function demoRow(recipeIndex: number, rowIndex: number, [seedId, weight]: DemoIn
     name: entry.name,
     weight,
     per100: { kcal: entry.kcal, protein: entry.protein, fat: entry.fat, carbs: entry.carbs },
-    source: 'skurikhin',
+    source: entry.source,
     // Тестовые данные не меняют ранг продуктов в справочнике.
     committed: true,
   };

@@ -227,7 +227,21 @@ describe('syncSeed', () => {
 
   it('новая запись набора не дублирует продукт с тем же названием или той же записью USDA', async () => {
     // База версии 1: записей новой версии в ней ещё нет, зато есть продукты из сети.
-    await db.products.bulkDelete(['sk-055', 'us-001', 'us-002', 'us-003']);
+    await db.products.bulkDelete(['sk-055', 'us-001', 'us-002', 'us-003', 'us-026']);
+    // Кетчуп марки слаще справочного: это другой продукт, справочная запись нужна рядом.
+    await db.products.add({
+      id: 'off-1',
+      name: 'Кетчуп',
+      nameNorm: normalizeName('Кетчуп'),
+      source: 'off',
+      externalId: 'off:4600000000001',
+      kcal: 230,
+      protein: 1,
+      fat: 0.2,
+      carbs: 55,
+      rank: 2,
+      verified: false,
+    });
     await db.products.add({
       id: 'user-1',
       name: 'говядина 2 категории',
@@ -272,6 +286,7 @@ describe('syncSeed', () => {
     expect(await db.products.get('sk-055')).toBeUndefined();
     expect(await db.products.get('us-001')).toBeUndefined();
     expect(await db.products.get('us-002')).toBeUndefined();
+    expect(await db.products.get('us-026')).toMatchObject({ name: 'Кетчуп', kcal: 101 });
     // Булгура в базе не было: запись добавлена.
     expect(await db.products.get('us-003')).toMatchObject({
       name: 'Булгур',
@@ -279,5 +294,17 @@ describe('syncSeed', () => {
       externalId: 'usda:170688',
       verified: false,
     });
+  });
+
+  it('непроверенная запись набора получает источник и externalId новой версии', async () => {
+    await db.products.update('us-003', { source: 'skurikhin', externalId: 'usda:1' });
+    await db.products.update('sk-014', { externalId: 'usda:2' });
+    await db.meta.update('seed', { version: 1 });
+    await syncSeed(db);
+    expect(await db.products.get('us-003')).toMatchObject({
+      source: 'usda',
+      externalId: 'usda:170688',
+    });
+    expect((await db.products.get('sk-014'))!.externalId).toBeUndefined();
   });
 });
